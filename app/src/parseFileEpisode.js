@@ -21,5 +21,5 @@ function parseFileEpisode()
 	return (data);
 }
 
-// export {parseFileEpisode};
-module.exports = parseFileEpisode;
+export {parseFileEpisode};
+// module.exports = parseFileEpisode;

@@ -19,8 +19,9 @@ class GetSourceFile
 
 				while (startPos > 0 && content[startPos] != '"')
 					startPos--;
-				url = "https://video.sibnet.ru" + content.slice(startPos + 1, endPos);
-				resolve(url);
+				const url1 = "http://localhost:8080/sibnet" + content.slice(startPos + 1, endPos);
+				const url2 = "https://video.sibnet.ru" + content.slice(startPos + 1, endPos);
+				resolve([url1, url2]);
 			})
 			.catch((err) => {
 				console.warn(err);
@@ -30,5 +31,5 @@ class GetSourceFile
 	}
 }
 
-// export {GetSourceFile};
-module.exports = GetSourceFile;
+export {GetSourceFile};
+// module.exports = GetSourceFile;
