@@ -10,10 +10,19 @@
     "test": "jest"
   },
   "dependencies": {
+    "@react-native-community/blur": "^4.4.1",
+    "@react-navigation/native": "^7.0.14",
+    "@react-navigation/stack": "^7.1.1",
     "axios": "^1.7.9",
     "react": "18.3.1",
     "react-native": "0.76.5",
-    "react-native-tcp-socket": "^6.2.0",
+    "react-native-external-keyboard": "^0.4.2",
+    "react-native-gesture-handler": "^2.21.2",
+    "react-native-linear-gradient": "^2.8.3",
+    "react-native-reanimated": "^3.16.6",
+    "react-native-safe-area-context": "^5.0.0",
+    "react-native-screens": "^4.4.0",
+    "react-native-tvos": "^0.76.5-0",
     "react-native-video-player": "^0.15.0",
     "react-native-webview": "^13.12.5"
   },

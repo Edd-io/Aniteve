@@ -1,12 +1,66 @@
 <!DOCTYPE html>
+<html lang="en">
 <head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Test</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lecteur M3U8</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #121212;
+            color: #fff;
+            font-family: Arial, sans-serif;
+        }
+        video {
+            max-width: 100%;
+            height: auto;
+            border: 2px solid #fff;
+            border-radius: 8px;
+        }
+    </style>
 </head>
 <body>
-	<video width="640" height="360" controls>
-		<source src="http://localhost:8080/api/video?video.sibnet.ru/v/47a4c9cfb262a3e2e5e68e13b62697f1/4826196.mp4" type="video/mp4">
-	</video>
+    <video id="video" controls autoplay></video>
+
+    <script>
+        // URL de votre fichier M3U8
+		const m3u8Url = "http://localhost:8080/api/video?vkvd1.okcdn.ru/video.m3u8?srcIp=176.133.204.27&pr=40&expires=1735605861511&srcAg=CHROME_MAC&fromCache=1&ms=185.226.52.132&mid=7653175470279&type=2&sig=t9R79J1UPQ0&ct=8&urls=45.136.22.132&clientType=13&cmd=videoPlayerCdn&id=7249764027079"; // Remplacez par votre URL
+       
+		
+		
+		
+		// const m3u8Url = "http://localhost:8080/api/video?videos2.sendvid.com/b6/24/4dhdt75q.mp4?validfrom=1735136996&validto=1735151396&rate=250k&ip=176.133.204.27&hash=WtOCQFpwJdnUxggzuCJSsius8WA%3D"; // Remplacez par votre URL
+		// const m3u8Url = "https://s1.oneupload.to/hls2/01/00064/fa3bfw24qud9_,l,h,.urlset/master.m3u8?t=wdQmNyef-piBGb-v15h1iYWmuxFRQMgzInQ63NcfYfQ&s=1735142126&e=28800&f=320247&i=0.0&sp=0"
+        const video = document.getElementById('video');
+
+        // Fonction principale pour charger HLS
+        function setupPlayer() {
+            if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                // Si le navigateur supporte HLS nativement
+                video.src = m3u8Url;
+            } else {
+                // Si HLS n'est pas supporté, utiliser HLS.js
+                const script = document.createElement('script');
+                script.src = "https://cdn.jsdelivr.net/npm/hls.js@latest";
+                script.onload = () => {
+                    if (Hls.isSupported()) {
+                        const hls = new Hls();
+                        hls.loadSource(m3u8Url);
+                        hls.attachMedia(video);
+                    } else {
+                        alert("Votre navigateur ne supporte pas la lecture HLS.");
+                    }
+                };
+                document.body.appendChild(script);
+            }
+        }
+
+        // Appeler la fonction pour configurer le lecteur
+        setupPlayer();
+    </script>
 </body>
 </html>

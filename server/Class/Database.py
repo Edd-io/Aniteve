@@ -3,7 +3,7 @@ from time import sleep
 
 class Database:
 	def __init__(self):
-		self.conn = sqlite3.connect('database.db')
+		self.conn = sqlite3.connect('database.db', check_same_thread=False)
 		self.create_table()
 
 	def create_table(self):
@@ -35,3 +35,10 @@ class Database:
 			VALUES (?, ?, ?, ?, ?)''', (anime['title'], anime['alternative_title'], str(anime['genre']), anime['url'], anime['img']))
 		self.conn.commit()
 		cursor.close()
+
+	def get_all_anime(self):
+		cursor = self.conn.cursor()
+		anime_list = cursor.execute('''
+			SELECT * FROM anime_list''').fetchall()
+		cursor.close()
+		return anime_list
