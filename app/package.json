@@ -24,7 +24,8 @@
     "react-native-screens": "^4.4.0",
     "react-native-tvos": "^0.76.5-0",
     "react-native-video-player": "^0.15.0",
-    "react-native-webview": "^13.12.5"
+    "react-native-webview": "^13.12.5",
+    "react-tv-space-navigation": "^5.1.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

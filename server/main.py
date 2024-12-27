@@ -70,4 +70,4 @@ if __name__ == '__main__':
 	# # all_m3u8_link = site.get_source_file(m3u8_link)
 	# print(all_m3u8_link)
 
-	app.run(debug=False, port=8080)
+	app.run(debug=False, port=8080, host='0.0.0.0')
