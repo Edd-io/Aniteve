@@ -1,7 +1,7 @@
 import React, {useState, useCallback, useEffect, useRef} from 'react';
 import { View, Text, StyleSheet, TouchableHighlight, Image, FlatList, NativeModules, DeviceEventEmitter } from 'react-native';
 import { LinearGradient } from 'react-native-linear-gradient';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 
 const urlApiGetAllAnime = 'http://192.168.1.172:8080/api/get_all_anime';
 const {TestNativeModule} = NativeModules;
@@ -49,14 +49,14 @@ const TopBar = () => {
 }
 
 const AnimeInfo = ({ anime }: any) => {
-	const	availableLanguagesVOSTFR = anime?.genre?.includes('VOSTFR');
-	const	availableLanguagesVF = anime?.genre?.includes('VF');
-	const	banGenre = ['VOSTFR', 'VF', 'cardListAnime', 'Anime', '-'];
+	const	availableLanguagesVOSTFR = anime?.genre?.includes('Vostfr');
+	const	availableLanguagesVF = anime?.genre?.includes('Vf');
+	const	banGenre = ['vostfr', 'vf', 'cardlistanime', 'anime', '-', 'scans']
 	let		genreString :string[] = [];
 
 	anime?.genre?.map((genre: string) => {
-		if (!banGenre.includes(genre))
-			genreString?.push(genre);
+		if (!banGenre.includes(genre.toLowerCase()))
+			genreString?.push(genre); 
 	});
 
 	return (
@@ -107,60 +107,57 @@ const HomeScreen = () =>
 		});
 	}, []);
 
-	useEffect(() => {
-		function handleKeyPress(keycode: number)
+	function handleKeyPress(data: any)
+	{
+		const	pos = selectedAnime - 2;
+		const	keycode = data.keycode;
+
+		if (data.screen !== 'Home')
+			return ;
+		console.log('keycode from home screen:', keycode);
+		if (keycode === remote.left && pos % 4 != 0)
+			setSelectedAnime(selectedAnime - 1);
+		else if (keycode === remote.right && pos % 4 != 3 && pos < anime_list_complete.length - 1)
+			setSelectedAnime(selectedAnime + 1);
+		else if (keycode === remote.up && pos > 3)
 		{
-			const pos = selectedAnime - 2;
-			console.log('keycode from home screen:', keycode);
-	
-			if (keycode === remote.left && pos % 4 != 0)
-				setSelectedAnime(selectedAnime - 1);
-			else if (keycode === remote.right && pos % 4 != 3 && pos < anime_list_complete.length - 1)
-				setSelectedAnime(selectedAnime + 1);
-			else if (keycode === remote.up && pos > 3)
+			if (pos - 4 < 4)
+				flatListRef.current?.scrollToOffset({ animated: false, offset: 0 });
+			setSelectedAnime(selectedAnime - 4);
+			if (pos - 4 > 3)
 			{
-				if (pos - 4 < 4)
-					flatListRef.current?.scrollToOffset({ animated: false, offset: 0 });
-				setSelectedAnime(selectedAnime - 4);
-				if (pos - 4 > 3)
-				{
-					rangeStart -= 4;
-					rangeEnd -= 4;
-					setAnimeList(anime_list_complete.slice(rangeStart, rangeEnd));
-				}
-			}
-			else if (keycode === remote.down && pos < anime_list_complete.length - 2)
-			{
-				if (pos < 4)
-				{
-					flatListRef.current?.scrollToOffset({ animated: false, offset: 70 });
-					haveOffset = true;
-				}
-				setSelectedAnime(selectedAnime + 4);
-				if (pos + 4 > 7)
-				{
-					rangeStart += 4;
-					rangeEnd += 4;
-					setAnimeList(anime_list_complete.slice(rangeStart, rangeEnd));
-				}
-			}
-			else if (keycode === remote.confirm)
-			{
-				navigation.navigate('Anime', {anime: anime_list_complete[selectedAnime - 2]});
-				DeviceEventEmitter.removeAllListeners('remoteKeyPress');
+				rangeStart -= 4;
+				rangeEnd -= 4;
+				setAnimeList(anime_list_complete.slice(rangeStart, rangeEnd));
 			}
 		}
-		DeviceEventEmitter.addListener('remoteKeyPress', handleKeyPress);
-		return () => {
-			DeviceEventEmitter.removeAllListeners('remoteKeyPress');
-		};
-	}, [selectedAnime]);
+		else if (keycode === remote.down && pos < anime_list_complete.length - 2)
+		{
+			if (pos < 4)
+			{
+				flatListRef.current?.scrollToOffset({ animated: false, offset: 70 });
+				haveOffset = true;
+			}
+			setSelectedAnime(selectedAnime + 4);
+			if (pos + 4 > 7)
+			{
+				rangeStart += 4;
+				rangeEnd += 4;
+				setAnimeList(anime_list_complete.slice(rangeStart, rangeEnd));
+			}
+		}
+		else if (keycode === remote.confirm)
+			navigation.navigate('Anime', {anime: anime_list_complete[selectedAnime - 2]});
+	}
+
+	DeviceEventEmitter.removeAllListeners('remoteKeyPress');
+	DeviceEventEmitter.addListener('remoteKeyPress', handleKeyPress);
 
 
 	useEffect(() => {
 		const handleKeyPress = () => {
 			TestNativeModule.resolveTest().then((res: any) => {
-				DeviceEventEmitter.emit('remoteKeyPress', parseInt(res));
+				DeviceEventEmitter.emit('remoteKeyPress', {screen: navigation.getState()?.routeNames[navigation.getState()?.index], keycode: parseInt(res)});
 				setRefresh(!refresh);
 			});
 		};

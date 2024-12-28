@@ -1,14 +1,23 @@
-import React, { useEffect, useState } from 'react';
-import { Image, StyleSheet, Text, View, DeviceEventEmitter } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Image, StyleSheet, Text, View, DeviceEventEmitter, FlatList} from 'react-native';
 import { useRoute, RouteProp } from '@react-navigation/native';
 import { LinearGradient } from 'react-native-linear-gradient';
 import credentials from '../credentials.json';
-import { FlatList, ScrollView } from 'react-native-gesture-handler';
+import { useNavigation } from '@react-navigation/native';
 
+const urlApiGetSeason = 'http://192.168.1.172:8080/api/get_anime_season';
+const urlApiGetEpisodes = 'http://192.168.1.172:8080/api/get_anime_episodes';
 const base_url_tmdb = 'https://image.tmdb.org/t/p/original';
 
 type RouteParams = {
 	anime: any;
+};
+
+type Anime = {
+	title: string;
+	img: string;
+	genre: string[];
+	url: string;
 };
 
 const remote = {
@@ -20,22 +29,28 @@ const remote = {
 	'confirm': 23,
 }
 
-const get_data_from_tmdb = async (id: number) => {
-	const url = `https://api.themoviedb.org/3/search/tv?api_key=${credentials.key_api_tmbd}&query=${id}`;
+const get_data_from_tmdb = async (id: string) => {
+	id = id.replace('&', 'and');
+	let url = `https://api.themoviedb.org/3/search/tv?api_key=${credentials.key_api_tmbd}&query=${id}`;
 	const response = await fetch(url);
 	const data = await response.json();
-	const idAnime: number = data?.results[0]?.id;
+	const idAnime: number = data?.results.filter((result: any) => result.genre_ids.includes(16))[0]?.id;
 
-	// get all data from the anime
+	// get all data from the anime 
 	// const url3 = `https://api.themoviedb.org/3/tv/${idAnime}?api_key=${credentials.key_api_tmbd}&language=fr-FR`;
 	// const response3 = await fetch(url3);
 	// const data3 = await response3.json();
 	// console.log(data3);
 
-
-	const url2 = `https://api.themoviedb.org/3/tv/${idAnime}/images?api_key=${credentials.key_api_tmbd}`;
+	const url2 = `https://api.themoviedb.org/3/tv/${idAnime}/images?api_key=${credentials.key_api_tmbd}&include_image_language=jp,en,null`;
 	const response2 = await fetch(url2);
-	const data2 = await response2.json();
+	let data2 = await response2.json();
+	if (data2.logos.length == 0)
+	{
+		const url2 = `https://api.themoviedb.org/3/tv/${idAnime}/images?api_key=${credentials.key_api_tmbd}`;
+		const response2 = await fetch(url2);
+		data2 = await response2.json();
+	}
 	return (data2);
 }
 
@@ -60,79 +75,320 @@ const Background = ({ img }: any) => {
 	);
 }
 
+let nbEpisodes = 0;
+let listUrlEpisodes: any = null;
+let allSeasons: string[] = [];
+
 const AnimeScreen = () => {
 	const route = useRoute<RouteProp<{ params: RouteParams }, 'params'>>();
 	const { anime } = route.params;
 	const [logo, setLogo] = useState<string>('');
-	const [logoDim, setLogoDim] = useState<any>({ width: 300, height: 0 });
+	const [BackgroundImg, setBackgroundImg] = useState<string>('');
 	const [genre, setGenre] = useState<string[]>([]);
+	const [leftButtonSelected, setLeftButtonSelected] = useState<number>(0); // 0 = reprendre, 1 = saison, 2 = retour
+	const [leftPartFocused, setLeftPartFocused] = useState<boolean>(true); // true = left, false = right
+	const [needRefresh, setNeedRefresh] = useState<boolean>(false);
+	
 	const [epsFocused, setEpsFocused] = useState<number>(1);
+	const [listEps, setListEps] = useState<number[]>([]);
+	const [pageSelected, setPageSelected] = useState<number>(1);
+	
+	const [listSeasons, setListSeasons] = useState<string[]>([]);
+	const [onSelectedSeasons, setOnSelectedSeasons] = useState<number>(0); // on season in the list without confirm
+	const [showAvailableSeasons, setShowAvailableSeasons] = useState<boolean>(false);
+	const [pageSelectedSeasons, setPageSelectedSeasons] = useState<number>(1);
+	const [idSelectedSeason, setIdSelectedSeason] = useState<number>(0);
+	const navigation = useNavigation();
 
 	useEffect(() => {
-		const	banGenre = ['VOSTFR', 'VF', 'cardListAnime', 'Anime', '-'];
+		const	banGenre = ['vostfr', 'vf', 'cardlistanime', 'anime', '-', 'scans']
 		let		genreString :string[] = [];
 
 		get_data_from_tmdb(anime.title).then((data) => {
 			const logoData = data?.logos[0];
-			if (logoData) {
+			if (logoData)
 				setLogo(base_url_tmdb + logoData.file_path);
-				const aspectRatio = logoData.width / logoData.height;
-				setLogoDim({ width: 300, height: 300 / aspectRatio });
-			}
+			const backdropData = data?.backdrops[0];
+			if (backdropData)
+				setBackgroundImg(base_url_tmdb + backdropData.file_path);
+			else
+				setBackgroundImg(anime.img);
 		});
 		anime?.genre?.map((genre: string) => {
-			if (!banGenre.includes(genre))
-				genreString?.push(genre);
+			if (!banGenre.includes(genre.toLowerCase()))
+				genreString?.push(genre); 
 		});
+		fetch(urlApiGetSeason, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({url: anime.url}),
+		}).then((response) => {
+			return response.json();
+		}).then((data) => {
+			let season = data.season;
+		
+			if (anime.genre.includes('Vf'))
+			{
+				data.season.forEach((element: string) => {
+					element = element.replace('vostfr', 'vf');
+					season.push(element);
+				});
+			}
+			allSeasons = season;
+			setListSeasons(allSeasons.slice(0, 12));
+		}).catch((error) => {
+			console.warn(error);
+		});		
 		setGenre(genreString);
 	}, []);
 
 	useEffect(() => {
-		function handleKeyPress(keycode: number)
+		if (allSeasons.length == 0)
+			return ;
+		fetch(urlApiGetEpisodes, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			}, 
+			body: JSON.stringify({url: anime.url, season: allSeasons[idSelectedSeason]}),
+		}).then((response) => {
+			return response.json();
+		}).then((data) => {
+			nbEpisodes = data.number;
+			listUrlEpisodes = data.episodes;
+			console.log('listUrlEpisodes:', listUrlEpisodes);
+			if (nbEpisodes >= 12)
+				setListEps([...Array(12).keys()].map(x => x + 1));
+			else
+				setListEps([...Array(nbEpisodes).keys()].map(x => x + 1));
+		}).catch((error) => {
+			console.warn(error);
+		});
+	}, [idSelectedSeason, listSeasons]);
+
+	function handleKeyPress(data: any)
+	{
+		const keycode = data.keycode;
+
+		if (data.screen !== 'Anime')
+			return ;
+		if (keycode == remote.up)
 		{
-			if (keycode == remote.up) {
-				if (epsFocused > 1)
-					setEpsFocused(epsFocused - 1);
+			if (!leftPartFocused)
+			{
+				if (!showAvailableSeasons)
+				{
+					if (epsFocused > 1)
+						setEpsFocused(epsFocused - 1);
+				}
+				else
+				{
+					if (onSelectedSeasons > 0)
+						setOnSelectedSeasons(onSelectedSeasons - 1);
+				}
 			}
-			else if (keycode == remote.down) {
-				if (epsFocused < 20)
-					setEpsFocused(epsFocused + 1);
+			else
+			{
+				if (leftButtonSelected > 0)
+					setLeftButtonSelected(leftButtonSelected - 1);
 			}
 		}
-		DeviceEventEmitter.addListener('remoteKeyPress', handleKeyPress);
-		return () => {
-			DeviceEventEmitter.removeAllListeners('remoteKeyPress');
-		};
-	}, [epsFocused]);
+		else if (keycode == remote.down)
+		{
+			if (!leftPartFocused)
+			{
+				if (!showAvailableSeasons)
+				{
+					if (epsFocused < listEps.length)
+						setEpsFocused(epsFocused + 1);
+				}
+				else
+				{
+					if (onSelectedSeasons < listSeasons.length - 1)
+						setOnSelectedSeasons(onSelectedSeasons + 1);
+				}
+			}
+			else
+			{
+				if (leftButtonSelected < 2)
+					setLeftButtonSelected(leftButtonSelected + 1);
+			}
+		}
+		else if (keycode == remote.left)
+		{
+			if (!leftPartFocused)
+			{
+				if (pageSelected == 1 && !showAvailableSeasons)
+				{
+					setLeftPartFocused(true);
+					setLeftButtonSelected(0);
+				}
+				else if (showAvailableSeasons && pageSelectedSeasons == 1)
+				{
+					setLeftPartFocused(true);
+					setLeftButtonSelected(0);
+				}
+				else
+				{
+					if (!showAvailableSeasons)
+						setPageSelected(pageSelected - 1);
+					else
+					{
+						setPageSelectedSeasons(pageSelectedSeasons - 1);
+						setListSeasons(allSeasons.slice((pageSelectedSeasons - 2) * 12, (pageSelectedSeasons - 1) * 12));
+					}
+				}
+			}
+		}
+		else if (keycode == remote.right)
+		{
+			if (leftPartFocused)
+				setLeftPartFocused(false);
+			else
+			{
+				if (!showAvailableSeasons)
+				{
+					if (pageSelected < Math.ceil(nbEpisodes / 12))
+					{
+						setPageSelected(pageSelected + 1);
+						if (pageSelected * 12 + epsFocused > nbEpisodes)
+							setEpsFocused(nbEpisodes % 12);
+					}
+				}
+				else
+				{
+					if (pageSelectedSeasons < Math.ceil(allSeasons.length / 12))
+					{
+						setPageSelectedSeasons(pageSelectedSeasons + 1);
+						if (pageSelectedSeasons * 12 + onSelectedSeasons > allSeasons.length)
+							setOnSelectedSeasons(allSeasons.length % 12);
+						setListSeasons(allSeasons.slice(pageSelectedSeasons * 12, (pageSelectedSeasons + 1) * 12));
+					}
+				}
+			}
+		}
+		else if (keycode == remote.return)
+		{
+			if (leftPartFocused)
+				navigation.goBack();
+			else
+				setLeftPartFocused(true);
+
+		}
+		else if (keycode == remote.confirm)
+		{
+			if (leftPartFocused)
+			{
+				if (leftButtonSelected == 1)
+				{
+					setShowAvailableSeasons(!showAvailableSeasons);
+					setLeftPartFocused(false);
+				}
+			}
+			else
+			{
+				if (!showAvailableSeasons)
+				{
+					console.log('go to episode', (pageSelected - 1) * 12 + epsFocused, 'season:', allSeasons[idSelectedSeason]);
+					navigation.navigate('Player', {data: {
+						season: allSeasons,
+						episode: (pageSelected - 1) * 12 + epsFocused,
+						selectedSeasons: idSelectedSeason,
+						url: anime.url,
+						title: anime.title,
+						listUrlEpisodes: listUrlEpisodes,
+					}});
+				}
+				else
+				{
+					setIdSelectedSeason((pageSelectedSeasons - 1) * 12 + onSelectedSeasons);
+					setShowAvailableSeasons(!showAvailableSeasons);
+					setEpsFocused(1);
+				}
+			}
+		}
+		setNeedRefresh(!needRefresh)
+	}
+
+	DeviceEventEmitter.removeAllListeners('remoteKeyPress');
+	DeviceEventEmitter.addListener('remoteKeyPress', handleKeyPress);
+
+
+	const NbPages = () => {
+		const pages = Math.ceil(showAvailableSeasons ? allSeasons.length / 12 : nbEpisodes / 12);
+		let pagesArray = [];
+		for (let i = 0; i < pages; i++)
+			pagesArray.push(
+				<Text
+					key={i}
+					style={[
+						styles.pageSquare,
+						{
+							backgroundColor: (showAvailableSeasons ? pageSelectedSeasons : pageSelected) == i + 1 ? '#fff' : '#333',
+							color: (showAvailableSeasons ? pageSelectedSeasons : pageSelected) == i + 1 ? '#222' : '#fff',
+						}
+					]}>
+					{i + 1}
+				</Text>
+			);
+		if (pagesArray.length == 0 && !showAvailableSeasons)
+			return (<Text style={styles.title}>Pas d'episodes disponibles</Text>);
+		else if (pagesArray.length == 0 && showAvailableSeasons)
+			return (<Text style={styles.title}>Pas de saisons disponibles</Text>);
+		return (
+			<View style={{width: '100%', height: 50, flexDirection: 'row', justifyContent: 'center', alignItems: 'center'}}>
+				<Text></Text>
+				{pagesArray.map((page) => page)}
+			</View>
+		);
+	}
 
 	return (
 		<View style={styles.body}>
-			<Background img={anime.img} />
+			<Background img={BackgroundImg} />
 			<View style={styles.contentLeft}>
 				{logo &&
-				<Image source={{ uri: logo }} style={{width: logoDim.width, height: logoDim.height}} />
+				<Image source={{ uri: logo }} style={{width: 300, height: 160}} resizeMode='contain' />
 				}
 				<View>
 					<Text style={styles.title}>{anime.title}</Text>
 					<Text style={styles.genre}>{genre.join(', ')}</Text>
 				</View>
-				<View >
-					<Text style={styles.button}>Reprendre</Text>
+				<View>
+					<Text style={leftPartFocused && (leftButtonSelected == 0) ? styles.buttonSelected : styles.button}>Reprendre</Text>
 					<Text style={styles.underButton}>vostfr/saison1 episode 1</Text>
 				</View>
-				<Text style={styles.button}>Changer de saison</Text>
+				<View>
+					<Text style={leftPartFocused && (leftButtonSelected == 1)? styles.buttonSelected : styles.button}>Changer de saison</Text>
+					<Text style={styles.underButton}>{allSeasons[idSelectedSeason]}</Text>
+				</View>
 				<View style={{flex: 1, justifyContent: 'flex-end'}}>
-					<Text style={styles.button}>Retour</Text>
+					<Text style={leftPartFocused && (leftButtonSelected == 2) ? styles.buttonSelected : styles.button}>Retour</Text>
 				</View>
 			</View>
 			<View style={styles.contentRight}>
 				<View style={styles.island}>
-					<Text style={styles.season}>vostfr/saison1</Text>
-					<FlatList
-						data={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]}
-						renderItem={({ item }) => <Text style={epsFocused == item ? styles.epsFocused : styles.eps}>Episode {item}</Text>}
-						keyExtractor={(item) => item.toString()}
-					/>
+					<NbPages />
+					<View style={{width: '100%', height: '100%', paddingInline: 20}}>
+						{
+							!showAvailableSeasons ?
+							<FlatList
+							data={listEps}
+							renderItem={({ item }) =>
+								(pageSelected - 1) * 12 + item > nbEpisodes ?
+								null :
+								<Text style={!leftPartFocused && epsFocused == item ? styles.epsFocused : styles.eps}>Episode {(pageSelected - 1) * 12 + item}</Text>}
+							keyExtractor={(item) => item.toString()}
+							/> :
+							<FlatList
+							data={listSeasons}
+							renderItem={({ item, index }) => <Text style={!leftPartFocused && onSelectedSeasons == index ? styles.epsFocused : styles.eps}>{item}</Text>}
+							keyExtractor={(item) => item}
+							/>
+						}
+					</View>
 				</View>
 			</View>
 		</View>
@@ -171,6 +427,7 @@ const styles = StyleSheet.create({
 		top: 0,
 		zIndex: 3,
 		alignItems: 'center',
+		overflow: 'hidden',
 		padding: 20,
 	},
 	title: {
@@ -189,21 +446,32 @@ const styles = StyleSheet.create({
 		color: '#fff',
 		fontSize: 20,
 		fontWeight: 'bold',
+		padding: 5,
 		marginTop: 20,
 		textAlign: 'center',
 	},
-	island: {
-		backgroundColor: '#333',
+	buttonSelected: {
+		color: '#fff',
+		fontSize: 20,
+		fontWeight: 'bold',
+		marginTop: 20,
+		padding: 5,
+		textAlign: 'center',
+		backgroundColor: '#333333E0',
 		borderRadius: 10,
+	},
+	island: {
 		width: '90%',
 		height: '100%',
-		padding: 20,
+		overflow: 'hidden',
+		borderRadius: 20,
+		backgroundColor: '#333333E0',
 	},
 	season: {
 		color: '#fff',
 		fontSize: 22,
 		fontWeight: 'bold',
-		marginBottom: 20,
+		padding: 20,
 	},
 	eps: {
 		color: '#ffffff',
@@ -221,7 +489,16 @@ const styles = StyleSheet.create({
 		color: '#ffffff90',
 		fontSize: 16,
 		textAlign: 'center',
-	}
+	},
+	pageSquare: {
+		color: '#fff',
+		fontSize: 20,
+		width: 30,
+		borderColor: '#fff',
+		borderWidth: 1,
+		textAlign: 'center',
+		margin: 2,
+	},
 });
 
 export default AnimeScreen;
