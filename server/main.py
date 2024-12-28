@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, request, jsonify
 from Class.Database import Database
 from Class.AnimeSama import AnimeSama
 from Class.Proxy import Proxy
@@ -39,6 +39,23 @@ def get_all_anime():
 			'img': anime[5]
 		})
 	return {'anime_list': all_anime}
+
+@app.route('/api/get_anime_season', methods=['POST'])
+def get_anime_season():
+	print('Requete get_anime_season |', request.get_json())
+	anime = request.get_json()
+	season = site.get_anime_season(anime)
+	return {'season': season}
+
+@app.route('/api/get_anime_episodes', methods=['POST'])
+def get_anime_episodes():
+	print('Requete get_anime_episodes |', request.get_json())
+	try:
+		anime = request.get_json()
+		episode = site.get_anime_episodes(anime)
+		return episode
+	except Exception as e:
+		return {'error': str(e)}
 
 if __name__ == '__main__':
 	# season = site.get_anime_season({'url': 'https://anime-sama.fr/catalogue/arifureta/'})

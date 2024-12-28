@@ -3,8 +3,8 @@ import requests
 import subprocess
 import json
 
-SERV_URL_SRCFILE = 'http://localhost:8080' + '/api/srcFile?'
-SERV_URL_VIDEO = 'http://localhost:8080' + '/api/video?'
+SERV_URL_SRCFILE = 'http://192.168.1.172:8080' + '/api/srcFile?'
+SERV_URL_VIDEO = 'http://192.168.1.172:8080' + '/api/video?'
 AVAILABLE_PLAYER = ['sibnet', 'oneupload', 'sendvid', 'vidmoly']
 js_function = '''
 function parseFileEpisode()
@@ -40,6 +40,7 @@ class AnimeSama:
 		response	= requests.get(self.url)
 		soup		= BeautifulSoup(response.text, 'html.parser')
 		anime_list	= soup('div', class_='Anime')
+		anime_list2	= soup('div', class_='Anime,')
 		all_anime	= []
 
 		for i, anime in enumerate(anime_list):
@@ -53,6 +54,25 @@ class AnimeSama:
 			url = anime.find('a')['href']
 			img = anime.find('img')['src']
 			all_anime.append({'title': title, 'alternative_title': alternative_title, 'genre': anime['class'], 'url': url, 'img': img})
+		for i, anime in enumerate(anime_list2):
+			for j, animeClass in enumerate(anime['class']):
+				if animeClass.find(',') != -1:
+					anime_list2[i]['class'][j] = animeClass.split(',')[0]
+			title = anime.find('h1').text
+			alternative_title = anime.find('p').text
+			if alternative_title == '':
+				alternative_title = None
+			url = anime.find('a')['href']
+			img = anime.find('img')['src']
+			all_anime.append({'title': title, 'alternative_title': alternative_title, 'genre': anime['class'], 'url': url, 'img': img})
+		for anime in all_anime:
+			anime['title'] = anime['title'].capitalize()
+			if anime['alternative_title']:
+				anime['alternative_title'] = anime['alternative_title'].capitalize()
+			anime['genre'] = [genre.capitalize() for genre in anime['genre']]
+		all_anime.sort(key=lambda x: x['title'])
+		for anime in all_anime:
+			self.db.insert_anime(anime)
 		for anime in all_anime:
 			self.db.insert_anime(anime)
 
@@ -77,9 +97,10 @@ class AnimeSama:
 				season.append(line.strip().split('"')[-2])
 		return (season)
 	
-	def get_anime_episodes(self, anime, season):
-		response	= requests.get(anime['url'] + season + '/episodes.js')
-
+	def get_anime_episodes(self, anime):
+		response	= requests.get(anime['url'] + '/' + anime['season'] + '/episodes.js')
+		if (response.status_code != 200):
+			return ({'episodes': {}, 'number': 0})
 		data = response.text
 		data += '\n' + js_function
 		process = subprocess.run(
@@ -91,16 +112,29 @@ class AnimeSama:
 		for i, episode in enumerate(episodes):
 			for j, link in enumerate(episodes[episode]):
 				episodes[episode][j] = episodes[episode][j].replace('https://', SERV_URL_SRCFILE)
+				# find = False
+				# for player in AVAILABLE_PLAYER:
+				# 	if episodes[episode][j].find(player) != -1:
+				# 		find = True
+				# 		break
+				# if find == False:
+				# 	episodes[episode].pop(j)
+			k = 0
+			while k < len(episodes[episode]):
 				find = False
 				for player in AVAILABLE_PLAYER:
-					if episodes[episode][j].find(player) != -1:
+					if episodes[episode][k].find(player) != -1:
 						find = True
 						break
 				if find == False:
-					episodes[episode].pop(j)
-		data = {'number': len(episodes)}
+					episodes[episode].pop(k)
+				else:
+					k += 1
+
+		data = {}
 		data['episodes'] = episodes
-		return (episodes)
+		data['number'] = len(episodes)
+		return (data)
 
 	def get_source_file(self, episode):
 		if (episode.find('sibnet') != -1):
