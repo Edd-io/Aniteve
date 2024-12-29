@@ -98,7 +98,7 @@ class AnimeSama:
 		return (season)
 	
 	def get_anime_episodes(self, anime):
-		response	= requests.get(anime['url'] + '/' + anime['season'] + '/episodes.js')
+		response = requests.get(anime['url'] + '/' + anime['season'] + '/episodes.js')
 		if (response.status_code != 200):
 			return ({'episodes': {}, 'number': 0})
 		data = response.text
@@ -112,13 +112,6 @@ class AnimeSama:
 		for i, episode in enumerate(episodes):
 			for j, link in enumerate(episodes[episode]):
 				episodes[episode][j] = episodes[episode][j].replace('https://', SERV_URL_SRCFILE)
-				# find = False
-				# for player in AVAILABLE_PLAYER:
-				# 	if episodes[episode][j].find(player) != -1:
-				# 		find = True
-				# 		break
-				# if find == False:
-				# 	episodes[episode].pop(j)
 			k = 0
 			while k < len(episodes[episode]):
 				find = False
@@ -147,15 +140,23 @@ class AnimeSama:
 			return (self.__get_source_file_from_vidmoly(episode))
 	
 	def __get_source_file_from_sibnet(self, episode):
-		response	= requests.get(episode)
+		headers = {
+			'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+		}
+		response	= requests.get(episode, headers=headers)
 		response	= response.text.split('\n')
 		url			= None
 
 		for line in response:
-			pos = line.find('src: "')
-			if (pos == -1):
+			pos = line.find('src')
+			endPos = line.find('.mp4')
+			if (pos == -1 or endPos == -1):
 				continue
-			url = SERV_URL_VIDEO + 'video.sibnet.ru' + line[pos + 6:line.find('"', pos + 6)]
+			endPos += 4
+			pos = endPos - 4
+			while (line[pos] != '"' and line[pos] != "'"):
+				pos -= 1
+			url = SERV_URL_VIDEO + 'video.sibnet.ru' + line[pos + 1:endPos] + '|' + episode
 		return (url)
 	
 	def __get_source_file_from_vidmoly(self, episode):

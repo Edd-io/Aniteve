@@ -11,7 +11,7 @@ app = Flask(__name__)
 @app.route('/api/srcFile')
 def proxy():
 	url = 'https://' + request.url.split('?', 1)[1]
-	return "Proxy"
+	return {'src': site.get_source_file(url)}
 
 @app.route('/api/video')
 def video():
@@ -87,4 +87,6 @@ if __name__ == '__main__':
 	# # all_m3u8_link = site.get_source_file(m3u8_link)
 	# print(all_m3u8_link)
 
+	# episode = site.get_source_file('https://video.sibnet.ru/shell.php?videoid=5700596')
+	# print(episode)
 	app.run(debug=False, port=8080, host='0.0.0.0')
