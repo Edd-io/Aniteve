@@ -1,14 +1,15 @@
 import React, {useState, useCallback, useEffect, useRef} from 'react';
-import { View, Text, StyleSheet, TouchableHighlight, Image, FlatList, NativeModules, DeviceEventEmitter } from 'react-native';
+import { View, Text, StyleSheet, TextInput, Image, FlatList, NativeModules, DeviceEventEmitter, Alert, BackHandler, Keyboard } from 'react-native';
 import { LinearGradient } from 'react-native-linear-gradient';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 
 const urlApiGetAllAnime = 'http://192.168.1.172:8080/api/get_all_anime';
 const {TestNativeModule} = NativeModules;
 
 let anime_list_complete: any = [];
+let anime_list_search: any = [];
 let rangeStart = 0;
-let rangeEnd = 16;
+let rangeEnd = 12;
 const remote = {
 	'left': 21,
 	'right': 22,
@@ -17,10 +18,13 @@ const remote = {
 	'return': 4,
 	'confirm': 23,
 }
-let haveOffset = false;
+let lastSelectedAnime = 2;
+let lastRangeStart = 0;
+let lastRangeEnd = 12;
+let arrIdAnime: number[] = [];
 
-const AnimeItem = React.memo(({ item, selectedAnime }: any) => {
-	const isSelected = selectedAnime === (item.id + 1);
+const AnimeItem = React.memo(({ item, selectedAnimeId }: any) => {
+	const isSelected = selectedAnimeId === (item.id + 1);
 	return (
 		<View style={styles.animeContainer}>
 			<Image
@@ -32,27 +36,34 @@ const AnimeItem = React.memo(({ item, selectedAnime }: any) => {
 	);
 });
 
-const TopBar = () => {
+const TopBar = ({ selectedAnimeId, refTextInput, setSearchInput}: any) => {
 	return (
 		<View style={styles.topBar}>
 			<Text style={styles.aniteve}>Aniteve</Text>
 			<View style={{flexDirection: 'row'}}>
-				<TouchableHighlight style={styles.topBarButtons} onPress={() => {}}>
+				<View style={[styles.topBarButtons, {backgroundColor: selectedAnimeId === 0 ? '#ffffff30' : 'transparent', overflow: 'hidden', flexDirection: 'row', alignItems: 'center'}]}>
+					<TextInput
+						style={{backgroundColor: '#ffffff30', color: '#fff', padding: 5, borderRadius: 10, width: 200, margin: 0, marginRight: 10}}
+						placeholder="Rechercher un anime..."
+						ref={refTextInput}
+						onChangeText={(text) => setSearchInput(text)}
+					/>
 					<Image source={require('../assets/img/search.png')} style={{width: 20, height: 20}} />
-				</TouchableHighlight>
-				<TouchableHighlight style={styles.topBarButtons} onPress={() => {}}>
-					<Image source={require('../assets/img/settings.png')} style={{width: 20, height: 20}} />
-				</TouchableHighlight>
+				</View>
+				<View style={[styles.topBarButtons, {backgroundColor: selectedAnimeId === 1 ? '#ffffff30' : 'transparent', overflow: 'hidden'}]}>
+					<Image source={require('../assets/img/settings.png')} style={{width: 20, height: 30}} resizeMode='contain' />
+				</View>
 			</View>
 		</View>
 	);
 }
 
-const AnimeInfo = ({ anime }: any) => {
+const AnimeInfo = ({ anime, selectedAnimeId }: any) => {
 	const	availableLanguagesVOSTFR = anime?.genre?.includes('Vostfr');
 	const	availableLanguagesVF = anime?.genre?.includes('Vf');
-	const	banGenre = ['vostfr', 'vf', 'cardlistanime', 'anime', '-', 'scans']
+	const	banGenre = ['vostfr', 'vf', 'cardlistanime', 'anime', '-', 'scans', 'film'];
 	let		genreString :string[] = [];
+
 
 	anime?.genre?.map((genre: string) => {
 		if (!banGenre.includes(genre.toLowerCase()))
@@ -79,28 +90,112 @@ const AnimeInfo = ({ anime }: any) => {
 			/>
 			<Image source={{uri: anime?.img}} style={{width: '100%', height: 250}} />
 			<Text style={styles.titleAnime}>{anime?.title}</Text>
+			{selectedAnimeId === -1 &&
+				<Text style={[styles.titleAnime, {textAlign: 'center', width: '100%'}]}>Aucun résultat</Text>
+			}
 			<Text style={styles.genreAnime}>{genreString.join(', ').length > 100 ? genreString.join(', ').substring(0, 100) + '...' : genreString.join(', ')}</Text>
-			<View style={styles.availableLanguages}>
-				<Text style={[styles.availableLanguagesText, {color: availableLanguagesVOSTFR ? '#fff' : '#ffffff30'}]}>VOSTFR</Text>
-				<Text style={[styles.availableLanguagesText, {color: availableLanguagesVF ? '#fff' : '#ffffff30'}]}>VF</Text>
-			</View>
+			{selectedAnimeId > 1 &&
+				<View style={styles.availableLanguages}>
+					<Text style={[styles.availableLanguagesText, {color: availableLanguagesVOSTFR ? '#fff' : '#ffffff30'}]}>VOSTFR</Text>
+					<Text style={[styles.availableLanguagesText, {color: availableLanguagesVF ? '#fff' : '#ffffff30'}]}>VF</Text>
+				</View>
+			}
 		</View>
 	);
 }
 
 const HomeScreen = () =>
 {
-	const [selectedAnime, setSelectedAnime] = useState<number>(2); // 0: search, 1: settings, 2: first anime
+	const [selectedAnimeId, setSelectedAnimeId] = useState<number>(lastSelectedAnime); // 0: search, 1: settings, 2: first anime
+	const [selectedAnimeVisual, setSelectedAnimeVisual] = useState<number>(lastSelectedAnime);
 	const [animeList, setAnimeList] = useState<any>([]);
 	const [refresh, setRefresh] = useState<boolean>(false);
+	const [refreshSearchList, setRefreshSearchList] = useState<boolean>(false);
+	const [searchInput, setSearchInput] = useState<string>('');
+	const refTextInput = useRef<TextInput>(null);
 	const flatListRef = useRef<FlatList>(null);
 	const navigation = useNavigation();
+
+	useEffect(() => {
+		const unsubscribe = navigation.addListener('focus', () => {
+			setSelectedAnimeId(lastSelectedAnime);
+			rangeStart = lastRangeStart;
+			rangeEnd = lastRangeEnd;
+			setAnimeList(anime_list_search.slice(rangeStart, rangeEnd));
+			if (lastSelectedAnime > 4)
+				flatListRef.current?.scrollToOffset({ animated: false, offset: 70 });
+			DeviceEventEmitter.removeAllListeners('remoteKeyPress');
+			DeviceEventEmitter.addListener('remoteKeyPress', handleKeyPress);
+			TestNativeModule.userHasGetUp();
+		});
+	
+		return (unsubscribe);
+	}, [navigation]);
+
+	useEffect(() => {
+		const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
+			refTextInput.current?.focus();
+		});
+		const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
+			refTextInput.current?.blur();
+			TestNativeModule.userHasGetUp();
+			setSelectedAnimeId(arrIdAnime[0] ? arrIdAnime[0] : 2);
+			setSelectedAnimeVisual(2);
+		});
+
+		return () => {
+			keyboardDidHideListener.remove();
+			keyboardDidShowListener.remove();
+		};
+	}, []);
+
+	useEffect(() => {
+		const handleNativeKey = () => {
+			TestNativeModule.resolveTest().then((res: any) => {
+				DeviceEventEmitter.emit('remoteKeyPress', {screen: navigation.getState()?.routeNames[navigation.getState()?.index], keycode: parseInt(res)});
+				setRefresh(!refresh);
+			});
+		};
+		handleNativeKey();
+	}, [refresh]);
+
+	useEffect(() => {
+		rangeStart = 0;
+		rangeEnd = 12;
+		arrIdAnime = [];
+		if (searchInput.length == 0)
+		{
+			anime_list_search = [...anime_list_complete];
+			arrIdAnime = Array.from(Array(anime_list_search.length).keys() , (x, i) => i + 2);
+		}
+		else
+		{
+			anime_list_search = [];
+			for (let i = 0; i < anime_list_complete.length; i++)
+			{
+				if (anime_list_complete[i].title.toLowerCase().includes(searchInput.toLowerCase()))
+					anime_list_search.push(anime_list_complete[i]);
+				else if (anime_list_complete[i].alternative_title?.toLowerCase().includes(searchInput.toLowerCase()))
+					anime_list_search.push(anime_list_complete[i]);
+				else
+					continue
+				arrIdAnime.push(i + 2);
+			}
+		}
+		console.log('arrIdAnime = :', arrIdAnime);
+		setAnimeList(anime_list_search.slice(rangeStart, rangeEnd));
+		console.log(anime_list_search);
+		setSelectedAnimeVisual(2);
+		setSelectedAnimeId(arrIdAnime[0] ? arrIdAnime[0] : -1);
+		flatListRef.current?.scrollToOffset({ animated: false, offset: 0 });
+	}, [searchInput, refreshSearchList]);
 
 	useEffect(() => {
 		fetch(urlApiGetAllAnime).then((response) => {
 			return response.json();
 		}).then((data) => {
 			anime_list_complete = data.anime_list;
+			setRefreshSearchList(!refreshSearchList);
 			setAnimeList(anime_list_complete.slice(rangeStart, rangeEnd));
 		}).catch((error) => {
 			console.warn(error);
@@ -109,69 +204,148 @@ const HomeScreen = () =>
 
 	function handleKeyPress(data: any)
 	{
-		const	pos = selectedAnime - 2;
 		const	keycode = data.keycode;
+		const	pos = selectedAnimeVisual - 2;
 
+		console.log('pos = ', pos, '| selectedAnimeVisual = ', selectedAnimeVisual, '| selectedAnimeId = ', selectedAnimeId, '| rangeStart = ', rangeStart, '| rangeEnd = ', rangeEnd);
 		if (data.screen !== 'Home')
 			return ;
-		console.log('keycode from home screen:', keycode);
-		if (keycode === remote.left && pos % 4 != 0)
-			setSelectedAnime(selectedAnime - 1);
-		else if (keycode === remote.right && pos % 4 != 3 && pos < anime_list_complete.length - 1)
-			setSelectedAnime(selectedAnime + 1);
-		else if (keycode === remote.up && pos > 3)
+		if (keycode === remote.left)
 		{
-			if (pos - 4 < 4)
-				flatListRef.current?.scrollToOffset({ animated: false, offset: 0 });
-			setSelectedAnime(selectedAnime - 4);
-			if (pos - 4 > 3)
+			if (selectedAnimeId === 0 || selectedAnimeId === 1)
 			{
-				rangeStart -= 4;
-				rangeEnd -= 4;
-				setAnimeList(anime_list_complete.slice(rangeStart, rangeEnd));
+				setSelectedAnimeId(0);
+				setSelectedAnimeVisual(0);
+			}
+			else if (pos % 4 != 0)
+			{
+				setSelectedAnimeId(arrIdAnime[pos - 1])
+				setSelectedAnimeVisual(selectedAnimeVisual - 1);
 			}
 		}
-		else if (keycode === remote.down && pos < anime_list_complete.length - 2)
+		else if (keycode === remote.right)
 		{
-			if (pos < 4)
+			if (selectedAnimeId === 0 || selectedAnimeId === 1)
 			{
-				flatListRef.current?.scrollToOffset({ animated: false, offset: 70 });
-				haveOffset = true;
+				setSelectedAnimeId(1);
+				setSelectedAnimeVisual(1);
 			}
-			setSelectedAnime(selectedAnime + 4);
-			if (pos + 4 > 7)
+			else if (pos % 4 != 3 && arrIdAnime[pos + 1])
 			{
-				rangeStart += 4;
-				rangeEnd += 4;
-				setAnimeList(anime_list_complete.slice(rangeStart, rangeEnd));
+				setSelectedAnimeId(arrIdAnime[pos + 1])
+				setSelectedAnimeVisual(selectedAnimeVisual + 1);
+			}
+		}
+		else if (keycode === remote.up)
+		{
+			if (pos >= 4)
+			{
+				if (pos >= 4 && pos < 8)
+					flatListRef.current?.scrollToOffset({ animated: false, offset: 0 });
+				else
+				{
+					rangeStart -= 4;
+					rangeEnd -= 4;
+					setAnimeList(anime_list_search.slice(rangeStart, rangeEnd));
+				}
+				if (pos >= 4)
+				{
+					setSelectedAnimeId(arrIdAnime[pos - 4])
+					setSelectedAnimeVisual(selectedAnimeVisual - 4);
+				}
+			}
+			else
+			{
+				setSelectedAnimeId(0);
+				setSelectedAnimeVisual(0);
+			}
+		}
+		else if (keycode === remote.down && pos < anime_list_search.length - 4)
+		{
+			if (selectedAnimeId === 0 || selectedAnimeId === 1)
+			{
+				setSelectedAnimeId(arrIdAnime[0])
+				setSelectedAnimeVisual(2);
+			}
+			else
+			{
+				if (pos < 4 && pos >= 0)
+					flatListRef.current?.scrollToOffset({ animated: false, offset: 70 });
+				else
+				{
+					rangeStart += 4;
+					rangeEnd += 4;
+					setAnimeList(anime_list_search.slice(rangeStart, rangeEnd));
+				}
+				if (pos < anime_list_search.length - 4)
+				{
+					setSelectedAnimeId(arrIdAnime[pos + 4])
+					setSelectedAnimeVisual(selectedAnimeVisual + 4);
+				}
 			}
 		}
 		else if (keycode === remote.confirm)
-			navigation.navigate('Anime', {anime: anime_list_complete[selectedAnime - 2]});
+		{
+			if (selectedAnimeId > 1)
+			{
+				lastSelectedAnime = selectedAnimeId;
+				lastRangeStart = rangeStart;
+				lastRangeEnd = rangeEnd;
+				navigation.navigate('Anime', {anime: anime_list_complete[selectedAnimeId - 2]});
+			}
+			else if (selectedAnimeId === 0)
+			{
+				setSearchInput('');
+				refTextInput.current?.clear();
+				refTextInput.current?.focus();
+			}
+			else if (selectedAnimeId === 1)
+			{
+			}
+		}
+		else if (keycode === remote.return)
+		{
+			if (selectedAnimeId > 2)
+			{
+				setSelectedAnimeId(2);
+				setSelectedAnimeVisual(2);
+			}
+			else if (selectedAnimeId === 0 || selectedAnimeId === 1)
+			{
+				setSelectedAnimeId(2);
+				setSelectedAnimeVisual(2);
+			}
+			else
+			{
+				Alert.alert('Quitter', 'Voulez-vous vraiment quitter l\'application ?', [
+					{
+						text: 'Non',
+						onPress: () => {},
+					},
+					{
+						text: 'Oui',
+						onPress: () => TestNativeModule.exitApp(),
+					},
+				]);
+			}
+		}
 	}
 
 	DeviceEventEmitter.removeAllListeners('remoteKeyPress');
 	DeviceEventEmitter.addListener('remoteKeyPress', handleKeyPress);
-
-
-	useEffect(() => {
-		const handleKeyPress = () => {
-			TestNativeModule.resolveTest().then((res: any) => {
-				DeviceEventEmitter.emit('remoteKeyPress', {screen: navigation.getState()?.routeNames[navigation.getState()?.index], keycode: parseInt(res)});
-				setRefresh(!refresh);
-			});
-		};
-		handleKeyPress();
-	}, [refresh]);
 	
 	const renderItem = useCallback(({ item }: any) => (
-		<AnimeItem item={item} selectedAnime={selectedAnime} />
-	), [selectedAnime]);
+		<AnimeItem item={item} selectedAnimeId={selectedAnimeId} />
+	), [selectedAnimeId]);
 
 	return (
 		<View style={{flex: 1, backgroundColor: '#222'}}>
-			<TopBar />
-			<AnimeInfo anime={anime_list_complete[selectedAnime - 2]} />
+			<TopBar
+				selectedAnimeId={selectedAnimeId}
+				refTextInput={refTextInput}
+				setSearchInput={setSearchInput}
+			/>
+			<AnimeInfo anime={anime_list_complete[selectedAnimeId - 2]} selectedAnimeId={selectedAnimeId} />
 			<FlatList
 				ref={flatListRef}
 				data={animeList}
@@ -179,7 +353,8 @@ const HomeScreen = () =>
 				keyExtractor={(item) => item.id.toString()}
 				numColumns={4}
 				contentContainerStyle={{ paddingBlock: 20, zIndex: 2}}
-				columnWrapperStyle={{ justifyContent: 'space-evenly' }}
+				columnWrapperStyle={{ justifyContent: 'flex-start', paddingHorizontal: 20 }}
+				scrollEnabled={false}
 			/>
 		</View>
 	);
@@ -201,12 +376,16 @@ const styles = StyleSheet.create({
 		fontWeight: 'bold',
 	},
 	topBarButtons: {
-		paddingInline: 10,
+		padding: 6,
+		marginInline: 6,
+		borderRadius: 10,
 	},
 	animeContainer: {
 		backgroundColor: '#333',
 		borderRadius: 10,
-		width: 200,
+		width: '20%',
+		margin: '2.5%',
+		marginBlock: 5,
 		height: 100,
 		marginBottom: 20,
 	},

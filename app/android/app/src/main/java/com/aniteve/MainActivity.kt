@@ -35,6 +35,17 @@ class TestNativeModule(reactContext: ReactApplicationContext) : ReactContextBase
     promise = newPromise
     Log.d("TestNativeModule", "Promise set")
   }
+
+  @ReactMethod
+  fun userHasGetUp() {
+    hasGetUp = true
+  }
+
+  @ReactMethod
+  fun exitApp() {
+      currentActivity?.finish()
+      android.os.Process.killProcess(android.os.Process.myPid())
+  }
 }
 
 class MyNativeModulePackage : ReactPackage {
@@ -65,11 +76,12 @@ class MainActivity : ReactActivity() {
       DefaultReactActivityDelegate(this, mainComponentName, fabricEnabled)
 
   override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+    Log.d("TestNativeModule", "Keypressed $keyCode, have promise : $promise")
     if (!hasGetUp)
       return true
     hasGetUp = false
     promise?.resolve("$keyCode")
-    Log.d("MainActivity", "Promise : $promise")
+    promise = null
     return true
   }
 

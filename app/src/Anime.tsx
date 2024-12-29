@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Image, StyleSheet, Text, View, DeviceEventEmitter, FlatList} from 'react-native';
 import { useRoute, RouteProp } from '@react-navigation/native';
 import { LinearGradient } from 'react-native-linear-gradient';
@@ -30,11 +30,27 @@ const remote = {
 }
 
 const get_data_from_tmdb = async (id: string) => {
+	let isMovie = false;
+
 	id = id.replace('&', 'and');
 	let url = `https://api.themoviedb.org/3/search/tv?api_key=${credentials.key_api_tmbd}&query=${id}`;
-	const response = await fetch(url);
-	const data = await response.json();
-	const idAnime: number = data?.results.filter((result: any) => result.genre_ids.includes(16))[0]?.id;
+	let response = await fetch(url);
+	let data = await response.json();
+	let idAnime: number = data?.results.filter((result: any) => result.genre_ids.includes(16))[0]?.id;
+
+	if (!idAnime)
+	{
+		isMovie = true;
+		url = `https://api.themoviedb.org/3/search/movie?api_key=${credentials.key_api_tmbd}&query=${id}`;
+		response = await fetch(url);
+		data = await response.json();
+		idAnime = data?.results.filter((result: any) => result.genre_ids.includes(16))[0]?.id;
+		if (!idAnime)
+		{
+			console.log('no anime found');
+			return (null);
+		}
+	}
 
 	// get all data from the anime 
 	// const url3 = `https://api.themoviedb.org/3/tv/${idAnime}?api_key=${credentials.key_api_tmbd}&language=fr-FR`;
@@ -42,13 +58,13 @@ const get_data_from_tmdb = async (id: string) => {
 	// const data3 = await response3.json();
 	// console.log(data3);
 
-	const url2 = `https://api.themoviedb.org/3/tv/${idAnime}/images?api_key=${credentials.key_api_tmbd}&include_image_language=jp,en,null`;
-	const response2 = await fetch(url2);
+	const url2 = `https://api.themoviedb.org/3/${isMovie ? 'movie' : 'tv'}/${idAnime}/images?api_key=${credentials.key_api_tmbd}&include_image_language=jp,en,null`;
+	let response2 = await fetch(url2);
 	let data2 = await response2.json();
-	if (data2.logos.length == 0)
-	{
-		const url2 = `https://api.themoviedb.org/3/tv/${idAnime}/images?api_key=${credentials.key_api_tmbd}`;
-		const response2 = await fetch(url2);
+
+	if (data2.logos.length === 0) {
+		const fallbackUrl = `https://api.themoviedb.org/3/${isMovie ? 'movie' : 'tv'}/${idAnime}/images?api_key=${credentials.key_api_tmbd}&include_image_language=null`;
+		response2 = await fetch(fallbackUrl);
 		data2 = await response2.json();
 	}
 	return (data2);
@@ -101,11 +117,23 @@ const AnimeScreen = () => {
 	const navigation = useNavigation();
 
 	useEffect(() => {
-		const	banGenre = ['vostfr', 'vf', 'cardlistanime', 'anime', '-', 'scans']
+		const	banGenre = ['vostfr', 'vf', 'cardlistanime', 'anime', '-', 'scans', 'film'];
 		let		genreString :string[] = [];
 
+		console.log(anime);
 		get_data_from_tmdb(anime.title).then((data) => {
-			const logoData = data?.logos[0];
+			let logoData = null;
+			let i = 0;
+
+			while (data && data.logos[i])
+			{
+				if (!data.logos[i].file_path.includes('svg') && data.logos[i].iso_639_1 != 'ko')
+				{
+					logoData = data.logos[i];
+					break ;
+				}
+				i++;
+			}
 			if (logoData)
 				setLogo(base_url_tmdb + logoData.file_path);
 			const backdropData = data?.backdrops[0];
@@ -158,7 +186,6 @@ const AnimeScreen = () => {
 		}).then((data) => {
 			nbEpisodes = data.number;
 			listUrlEpisodes = data.episodes;
-			console.log('listUrlEpisodes:', listUrlEpisodes);
 			if (nbEpisodes >= 12)
 				setListEps([...Array(12).keys()].map(x => x + 1));
 			else
@@ -299,6 +326,8 @@ const AnimeScreen = () => {
 						url: anime.url,
 						title: anime.title,
 						listUrlEpisodes: listUrlEpisodes,
+						logo: logo,
+						back: anime,
 					}});
 				}
 				else
@@ -314,7 +343,6 @@ const AnimeScreen = () => {
 
 	DeviceEventEmitter.removeAllListeners('remoteKeyPress');
 	DeviceEventEmitter.addListener('remoteKeyPress', handleKeyPress);
-
 
 	const NbPages = () => {
 		const pages = Math.ceil(showAvailableSeasons ? allSeasons.length / 12 : nbEpisodes / 12);
