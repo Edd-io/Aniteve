@@ -2,8 +2,7 @@ import React from 'react';
 import { Text, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import { useNavigation } from '@react-navigation/native';
-import HomeScreen from './src/Home';
+import HomeScreen from './src/Home/Home';
 import AnimeScreen from './src/Anime';
 import PlayerScreen from './src/Player';
 

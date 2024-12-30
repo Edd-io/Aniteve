@@ -2,34 +2,67 @@ import React, {useState, useCallback, useEffect, useRef} from 'react';
 import { View, Text, StyleSheet, TextInput, Image, FlatList, NativeModules, DeviceEventEmitter, Alert, BackHandler, Keyboard } from 'react-native';
 import { LinearGradient } from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
+import remoteControl from './remoteControl';
+import ResumePopup from './ResumePopup'
+
 
 const urlApiGetAllAnime = 'http://192.168.1.172:8080/api/get_all_anime';
 const {TestNativeModule} = NativeModules;
 
-let anime_list_complete: any = [];
-let anime_list_search: any = [];
-let rangeStart = 0;
-let rangeEnd = 12;
-const remote = {
-	'left': 21,
-	'right': 22,
-	'up': 19,
-	'down': 20,
-	'return': 4,
-	'confirm': 23,
+let anime_list: any = {
+	complete: [],
+	search: [],
 }
-let lastSelectedAnime = 2;
-let lastRangeStart = 0;
-let lastRangeEnd = 12;
+let range: any  = {
+	start: 0,
+	end: 12,
+}
+let last: any = {
+	selectedAnime: 2,
+}
 let arrIdAnime: number[] = [];
+let animationBorderSelected: any = {
+	id: -1,
+	setWidthBorderFunc: null,
+	timeout: null,
+	focus: true,
+}
+
+let speed = 0;
 
 const AnimeItem = React.memo(({ item, selectedAnimeId }: any) => {
+	const [widthBorder, setWidthBorder] = useState(0);
 	const isSelected = selectedAnimeId === (item.id + 1);
+	if (isSelected)
+	{
+		if (animationBorderSelected.id != item.id && animationBorderSelected.setWidthBorderFunc !== null)
+		{
+			animationBorderSelected.setWidthBorderFunc(0);
+			clearTimeout(animationBorderSelected.timeout);
+			speed = 0;
+		}
+		animationBorderSelected = {
+			id: item.id,
+			setWidthBorderFunc: setWidthBorder,
+			timeout: setTimeout(() => {
+				let width = Math.sin(speed) + 1.5;
+				speed += 0.075;
+				setWidthBorder(width * 3);
+			}, 16)
+		}
+	}
+	
 	return (
 		<View style={styles.animeContainer}>
 			<Image
 				source={{ uri: item.img }}
-				style={[styles.animeImage, { transform: [{ scale: isSelected ? 1.1 : 1 }] }]}
+				style={[styles.animeImage,
+					{
+						transform: [{ scale: isSelected ? 1.1 : 1 }],
+						borderColor: '#79a4ed',
+						borderWidth: selectedAnimeId < 2 ? 0 : isSelected ? widthBorder : 0,
+					}
+				]}
 				onError={(e) => console.log('Erreur de chargement de l\'image:', e.nativeEvent.error)}
 			/>
 		</View>
@@ -41,17 +74,20 @@ const TopBar = ({ selectedAnimeId, refTextInput, setSearchInput}: any) => {
 		<View style={styles.topBar}>
 			<Text style={styles.aniteve}>Aniteve</Text>
 			<View style={{flexDirection: 'row'}}>
-				<View style={[styles.topBarButtons, {backgroundColor: selectedAnimeId === 0 ? '#ffffff30' : 'transparent', overflow: 'hidden', flexDirection: 'row', alignItems: 'center'}]}>
+				<View style={[styles.topBarButtons, {backgroundColor: selectedAnimeId === -1 ? '#ffffff30' : 'transparent', overflow: 'hidden', flexDirection: 'row', alignItems: 'center'}]}>
 					<TextInput
 						style={{backgroundColor: '#ffffff30', color: '#fff', padding: 5, borderRadius: 10, width: 200, margin: 0, marginRight: 10}}
 						placeholder="Rechercher un anime..."
 						ref={refTextInput}
 						onChangeText={(text) => setSearchInput(text)}
 					/>
-					<Image source={require('../assets/img/search.png')} style={{width: 20, height: 20}} />
+					<Image source={require('../../assets/img/search.png')} style={{width: 20, height: 20}} />
+				</View>
+				<View style={[styles.topBarButtons, {backgroundColor: selectedAnimeId === 0 ? '#ffffff30' : 'transparent', overflow: 'hidden'}]}>
+					<Image source={require('../../assets/img/resume.png')} style={{width: 30, height: 30}} resizeMode='contain' />
 				</View>
 				<View style={[styles.topBarButtons, {backgroundColor: selectedAnimeId === 1 ? '#ffffff30' : 'transparent', overflow: 'hidden'}]}>
-					<Image source={require('../assets/img/settings.png')} style={{width: 20, height: 30}} resizeMode='contain' />
+					<Image source={require('../../assets/img/settings.png')} style={{width: 20, height: 30}} resizeMode='contain' />
 				</View>
 			</View>
 		</View>
@@ -90,7 +126,7 @@ const AnimeInfo = ({ anime, selectedAnimeId }: any) => {
 			/>
 			<Image source={{uri: anime?.img}} style={{width: '100%', height: 250}} />
 			<Text style={styles.titleAnime}>{anime?.title}</Text>
-			{selectedAnimeId === -1 &&
+			{selectedAnimeId === -2 &&
 				<Text style={[styles.titleAnime, {textAlign: 'center', width: '100%'}]}>Aucun résultat</Text>
 			}
 			<Text style={styles.genreAnime}>{genreString.join(', ').length > 100 ? genreString.join(', ').substring(0, 100) + '...' : genreString.join(', ')}</Text>
@@ -104,33 +140,20 @@ const AnimeInfo = ({ anime, selectedAnimeId }: any) => {
 	);
 }
 
+
+
 const HomeScreen = () =>
 {
-	const [selectedAnimeId, setSelectedAnimeId] = useState<number>(lastSelectedAnime); // 0: search, 1: settings, 2: first anime
-	const [selectedAnimeVisual, setSelectedAnimeVisual] = useState<number>(lastSelectedAnime);
+	const [selectedAnimeId, setSelectedAnimeId] = useState<number>(last.selectedAnime); // -1: search, 0: resume, 1: settings, 2: first anime
+	const [selectedAnimeVisual, setSelectedAnimeVisual] = useState<number>(last.selectedAnime);
 	const [animeList, setAnimeList] = useState<any>([]);
 	const [refresh, setRefresh] = useState<boolean>(false);
 	const [refreshSearchList, setRefreshSearchList] = useState<boolean>(false);
 	const [searchInput, setSearchInput] = useState<string>('');
+	const [popupResume, setPopupResume] = useState<boolean>(false);
 	const refTextInput = useRef<TextInput>(null);
 	const flatListRef = useRef<FlatList>(null);
 	const navigation = useNavigation();
-
-	useEffect(() => {
-		const unsubscribe = navigation.addListener('focus', () => {
-			setSelectedAnimeId(lastSelectedAnime);
-			rangeStart = lastRangeStart;
-			rangeEnd = lastRangeEnd;
-			setAnimeList(anime_list_search.slice(rangeStart, rangeEnd));
-			if (lastSelectedAnime > 4)
-				flatListRef.current?.scrollToOffset({ animated: false, offset: 70 });
-			DeviceEventEmitter.removeAllListeners('remoteKeyPress');
-			DeviceEventEmitter.addListener('remoteKeyPress', handleKeyPress);
-			TestNativeModule.userHasGetUp();
-		});
-	
-		return (unsubscribe);
-	}, [navigation]);
 
 	useEffect(() => {
 		const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
@@ -139,7 +162,7 @@ const HomeScreen = () =>
 		const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
 			refTextInput.current?.blur();
 			TestNativeModule.userHasGetUp();
-			setSelectedAnimeId(arrIdAnime[0] ? arrIdAnime[0] : 2);
+			setSelectedAnimeId(arrIdAnime[0] ? arrIdAnime[0] : -2);
 			setSelectedAnimeVisual(2);
 		});
 
@@ -160,33 +183,31 @@ const HomeScreen = () =>
 	}, [refresh]);
 
 	useEffect(() => {
-		rangeStart = 0;
-		rangeEnd = 12;
+		range.start = 0;
+		range.end = 12;
 		arrIdAnime = [];
 		if (searchInput.length == 0)
 		{
-			anime_list_search = [...anime_list_complete];
-			arrIdAnime = Array.from(Array(anime_list_search.length).keys() , (x, i) => i + 2);
+			anime_list.search = [...anime_list.complete];
+			arrIdAnime = Array.from(Array(anime_list.search.length).keys() , (x, i) => i + 2);
 		}
 		else
 		{
-			anime_list_search = [];
-			for (let i = 0; i < anime_list_complete.length; i++)
+			anime_list.search = [];
+			for (let i = 0; i < anime_list.complete.length; i++)
 			{
-				if (anime_list_complete[i].title.toLowerCase().includes(searchInput.toLowerCase()))
-					anime_list_search.push(anime_list_complete[i]);
-				else if (anime_list_complete[i].alternative_title?.toLowerCase().includes(searchInput.toLowerCase()))
-					anime_list_search.push(anime_list_complete[i]);
+				if (anime_list.complete[i].title.toLowerCase().includes(searchInput.toLowerCase()))
+					anime_list.search.push(anime_list.complete[i]);
+				else if (anime_list.complete[i].alternative_title?.toLowerCase().includes(searchInput.toLowerCase()))
+					anime_list.search.push(anime_list.complete[i]);
 				else
 					continue
 				arrIdAnime.push(i + 2);
 			}
 		}
-		console.log('arrIdAnime = :', arrIdAnime);
-		setAnimeList(anime_list_search.slice(rangeStart, rangeEnd));
-		console.log(anime_list_search);
+		setAnimeList(anime_list.search.slice(range.start, range.end));
 		setSelectedAnimeVisual(2);
-		setSelectedAnimeId(arrIdAnime[0] ? arrIdAnime[0] : -1);
+		setSelectedAnimeId(arrIdAnime[0] ? arrIdAnime[0] : -2);
 		flatListRef.current?.scrollToOffset({ animated: false, offset: 0 });
 	}, [searchInput, refreshSearchList]);
 
@@ -194,149 +215,19 @@ const HomeScreen = () =>
 		fetch(urlApiGetAllAnime).then((response) => {
 			return response.json();
 		}).then((data) => {
-			anime_list_complete = data.anime_list;
+			anime_list.complete = data.anime_list;
 			setRefreshSearchList(!refreshSearchList);
-			setAnimeList(anime_list_complete.slice(rangeStart, rangeEnd));
+			setAnimeList(anime_list.complete.slice(range.start, range.end));
 		}).catch((error) => {
 			console.warn(error);
 		});
 	}, []);
-
-	function handleKeyPress(data: any)
-	{
-		const	keycode = data.keycode;
-		const	pos = selectedAnimeVisual - 2;
-
-		console.log('pos = ', pos, '| selectedAnimeVisual = ', selectedAnimeVisual, '| selectedAnimeId = ', selectedAnimeId, '| rangeStart = ', rangeStart, '| rangeEnd = ', rangeEnd);
-		if (data.screen !== 'Home')
-			return ;
-		if (keycode === remote.left)
-		{
-			if (selectedAnimeId === 0 || selectedAnimeId === 1)
-			{
-				setSelectedAnimeId(0);
-				setSelectedAnimeVisual(0);
-			}
-			else if (pos % 4 != 0)
-			{
-				setSelectedAnimeId(arrIdAnime[pos - 1])
-				setSelectedAnimeVisual(selectedAnimeVisual - 1);
-			}
-		}
-		else if (keycode === remote.right)
-		{
-			if (selectedAnimeId === 0 || selectedAnimeId === 1)
-			{
-				setSelectedAnimeId(1);
-				setSelectedAnimeVisual(1);
-			}
-			else if (pos % 4 != 3 && arrIdAnime[pos + 1])
-			{
-				setSelectedAnimeId(arrIdAnime[pos + 1])
-				setSelectedAnimeVisual(selectedAnimeVisual + 1);
-			}
-		}
-		else if (keycode === remote.up)
-		{
-			if (pos >= 4)
-			{
-				if (pos >= 4 && pos < 8)
-					flatListRef.current?.scrollToOffset({ animated: false, offset: 0 });
-				else
-				{
-					rangeStart -= 4;
-					rangeEnd -= 4;
-					setAnimeList(anime_list_search.slice(rangeStart, rangeEnd));
-				}
-				if (pos >= 4)
-				{
-					setSelectedAnimeId(arrIdAnime[pos - 4])
-					setSelectedAnimeVisual(selectedAnimeVisual - 4);
-				}
-			}
-			else
-			{
-				setSelectedAnimeId(0);
-				setSelectedAnimeVisual(0);
-			}
-		}
-		else if (keycode === remote.down && pos < anime_list_search.length - 4)
-		{
-			if (selectedAnimeId === 0 || selectedAnimeId === 1)
-			{
-				setSelectedAnimeId(arrIdAnime[0])
-				setSelectedAnimeVisual(2);
-			}
-			else
-			{
-				if (pos < 4 && pos >= 0)
-					flatListRef.current?.scrollToOffset({ animated: false, offset: 70 });
-				else
-				{
-					rangeStart += 4;
-					rangeEnd += 4;
-					setAnimeList(anime_list_search.slice(rangeStart, rangeEnd));
-				}
-				if (pos < anime_list_search.length - 4)
-				{
-					setSelectedAnimeId(arrIdAnime[pos + 4])
-					setSelectedAnimeVisual(selectedAnimeVisual + 4);
-				}
-			}
-		}
-		else if (keycode === remote.confirm)
-		{
-			if (selectedAnimeId > 1)
-			{
-				lastSelectedAnime = selectedAnimeId;
-				lastRangeStart = rangeStart;
-				lastRangeEnd = rangeEnd;
-				navigation.navigate('Anime', {anime: anime_list_complete[selectedAnimeId - 2]});
-			}
-			else if (selectedAnimeId === 0)
-			{
-				setSearchInput('');
-				refTextInput.current?.clear();
-				refTextInput.current?.focus();
-			}
-			else if (selectedAnimeId === 1)
-			{
-			}
-		}
-		else if (keycode === remote.return)
-		{
-			if (selectedAnimeId > 2)
-			{
-				setSelectedAnimeId(2);
-				setSelectedAnimeVisual(2);
-			}
-			else if (selectedAnimeId === 0 || selectedAnimeId === 1)
-			{
-				setSelectedAnimeId(2);
-				setSelectedAnimeVisual(2);
-			}
-			else
-			{
-				Alert.alert('Quitter', 'Voulez-vous vraiment quitter l\'application ?', [
-					{
-						text: 'Non',
-						onPress: () => {},
-					},
-					{
-						text: 'Oui',
-						onPress: () => TestNativeModule.exitApp(),
-					},
-				]);
-			}
-		}
-	}
-
-	DeviceEventEmitter.removeAllListeners('remoteKeyPress');
-	DeviceEventEmitter.addListener('remoteKeyPress', handleKeyPress);
 	
 	const renderItem = useCallback(({ item }: any) => (
 		<AnimeItem item={item} selectedAnimeId={selectedAnimeId} />
 	), [selectedAnimeId]);
+
+	remoteControl({selectedAnimeId, setSelectedAnimeId, selectedAnimeVisual, searchInput, setSelectedAnimeVisual, anime_list, setAnimeList, range, setSearchInput, refTextInput, flatListRef, navigation, arrIdAnime, last});
 
 	return (
 		<View style={{flex: 1, backgroundColor: '#222'}}>
@@ -345,7 +236,11 @@ const HomeScreen = () =>
 				refTextInput={refTextInput}
 				setSearchInput={setSearchInput}
 			/>
-			<AnimeInfo anime={anime_list_complete[selectedAnimeId - 2]} selectedAnimeId={selectedAnimeId} />
+			{
+				popupResume && 
+				<ResumePopup />
+			}
+			<AnimeInfo anime={anime_list.complete[selectedAnimeId - 2]} selectedAnimeId={selectedAnimeId} />
 			<FlatList
 				ref={flatListRef}
 				data={animeList}
@@ -353,7 +248,7 @@ const HomeScreen = () =>
 				keyExtractor={(item) => item.id.toString()}
 				numColumns={4}
 				contentContainerStyle={{ paddingBlock: 20, zIndex: 2}}
-				columnWrapperStyle={{ justifyContent: 'flex-start', paddingHorizontal: 20 }}
+				columnWrapperStyle={{ justifyContent: 'flex-start', width: '95%', marginInline: 'auto'}}
 				scrollEnabled={false}
 			/>
 		</View>
@@ -365,8 +260,9 @@ const styles = StyleSheet.create({
 		flexDirection: 'row',
 		justifyContent: 'space-between',
 		alignItems: 'center',
-		padding: 20,
 		position: 'absolute',
+		paddingInline: 20,
+		marginTop: 10,
 		width: '100%',
 		zIndex: 2,
 	},
@@ -383,15 +279,14 @@ const styles = StyleSheet.create({
 	animeContainer: {
 		backgroundColor: '#333',
 		borderRadius: 10,
-		width: '20%',
-		margin: '2.5%',
-		marginBlock: 5,
-		height: 100,
-		marginBottom: 20,
+		width: '22%',
+		margin: '1.5%',
+		height: 120,
+		marginBottom: 10,
 	},
 	animeImage: {
-		width: 200,
-		height: 100,
+		width: '100%',
+		height: '100%',
 		borderRadius: 10,
 	},
 	gradientOverlay: {

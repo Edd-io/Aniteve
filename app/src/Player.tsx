@@ -5,6 +5,8 @@ import Video, { VideoRef } from 'react-native-video';
 import { LinearGradient } from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 
+const urlApiUpdateProgress = "http://192.168.1.172:8080/api/update_progress"
+
 interface RouteParams {
 	data: any;
 }
@@ -19,7 +21,7 @@ const remote = {
 }
 
 const	timeSkip = 15;
-let		timeOutOverlay: any = null;
+let		timeoutOverlay: any = null;
 
 function capitalize(val: string)
 {
@@ -50,7 +52,7 @@ const PlayerScreen = () => {
 	const [isPaused, setIsPaused] = useState<boolean>(false);
 	const [onLoading, setOnLoading] = useState<boolean>(false);
 	const [hideOverlay, setHideOverlay] = useState<boolean>(false);
-	const [selectedButton, setSelectedButton] = useState<number>(0); // 0: resume, 1: change source, 2: previous episode, 3: next episode
+	const [selectedButton, setSelectedButton] = useState<number>(0); // 0: resume, 1: change source, 2: previous episode, 3: next episode, 4:return to menu
 
 	const [source, setSource] = useState<string[]>([]);
 	const [showSource, setShowSource] = useState<boolean>(false);
@@ -63,13 +65,48 @@ const PlayerScreen = () => {
 	const [needRefresh, setNeedRefresh] = useState<boolean>(false);
 	const [newValueEpisode, setNewValueEpisode] = useState<number>(0);
 
+	const [sendRequest, setSendRequest] = useState<boolean>(false);
+
+	useEffect(() => {
+		const	pourcent = (currentTime / totalTime) * 100;
+
+		setTimeout(() => {
+			if (pourcent && !hasError && !isPaused)
+			{
+				fetch(urlApiUpdateProgress, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify({
+						id: data.back.id,
+						episode: data.episode,
+						totalEpisode: Object.keys(data.listUrlEpisodes).length,
+						seasonId: data.selectedSeasons,
+						allSeasons: data.season,
+						progress: pourcent,
+					})
+				}).then((response) => {return response.json()})
+				.then((data) => {
+					console.log(data);
+					setSendRequest(!sendRequest);
+				})
+				.catch((err) => {
+					console.warn(err);
+					setSendRequest(!sendRequest);
+				});
+			}
+			else
+				setSendRequest(!sendRequest);
+		}, 5000);
+	}, [sendRequest]);
+
 	useEffect(() => {
 		if (newValueEpisode == 0)
 		{
 			setNewValueEpisode(data.episode);
 			return ;
 		}
-		console.log(data);
 		setTotalTime(0);
 		setCurrentTime(0);
 		setWidthProgressBar(0);
@@ -136,12 +173,12 @@ const PlayerScreen = () => {
 
 		if (keyData.screen !== 'Player')
 			return ;
-		if (timeOutOverlay)
-			clearTimeout(timeOutOverlay);
+		if (timeoutOverlay)
+			clearTimeout(timeoutOverlay);
 		if (!isPaused && !hasError)
 		{
 			setHideOverlay(false);
-			timeOutOverlay = setTimeout(() => {
+			timeoutOverlay = setTimeout(() => {
 				setHideOverlay(true);
 			}, 5000);
 		}
@@ -166,7 +203,15 @@ const PlayerScreen = () => {
 					else if (selectedButton == 3 && newValueEpisode < Object.keys(data.listUrlEpisodes).length)
 						setNewValueEpisode(newValueEpisode + 1);
 					else if (selectedButton == 4)
-						navigation.goBack();
+					{
+						navigation.reset({
+							index: 1,
+							routes: [
+								{ name: 'Home' as never },
+								{ name: 'Anime' as never, params: { anime: data.back } },
+							],
+						});
+					}
 				}
 				else
 				{
@@ -211,8 +256,8 @@ const PlayerScreen = () => {
 				navigation.reset({
 					index: 1,
 					routes: [
-						{ name: 'Home' }, // Première page
-						{ name: 'Anime', params: { anime: data.back } }, // Deuxième page (active)
+						{ name: 'Home' as never },
+						{ name: 'Anime' as never, params: { anime: data.back } },
 					],
 				});
 			}
@@ -274,8 +319,11 @@ const PlayerScreen = () => {
 					setOnLoading(true);
 					videoRef.current?.seek(timeToResume);
 				}}
-				onLoad={(data) => {
-					setTotalTime(data.duration);
+				onLoad={(dataLoad) => {
+					setTotalTime(dataLoad.duration);
+					setOnLoading(false);
+					if (data.resumeTime)
+						videoRef.current?.seek((data.resumeTime / 100) * dataLoad.duration);
 				}}
 				onProgress={(data) => {
 					setCurrentTime(data.currentTime);

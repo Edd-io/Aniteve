@@ -1,24 +1,32 @@
 import React, { useEffect, useState } from 'react';
-import { Image, StyleSheet, Text, View, DeviceEventEmitter, FlatList} from 'react-native';
-import { useRoute, RouteProp } from '@react-navigation/native';
+import { Image, StyleSheet, Text, View, DeviceEventEmitter, FlatList, Alert} from 'react-native';
+import { useRoute, RouteProp, useNavigation, NavigationProp } from '@react-navigation/native';
 import { LinearGradient } from 'react-native-linear-gradient';
 import credentials from '../credentials.json';
-import { useNavigation } from '@react-navigation/native';
-
 const urlApiGetSeason = 'http://192.168.1.172:8080/api/get_anime_season';
 const urlApiGetEpisodes = 'http://192.168.1.172:8080/api/get_anime_episodes';
+const urlApiGetProgress = 'http://192.168.1.172:8080/api/get_progress';
 const base_url_tmdb = 'https://image.tmdb.org/t/p/original';
 
 type RouteParams = {
 	anime: any;
 };
-
-type Anime = {
-	title: string;
-	img: string;
-	genre: string[];
-	url: string;
+type RootStackParamList = {
+	Player: {
+		data: {
+			season: any,
+			episode: number,
+			selectedSeasons: number,
+			url: string,
+			title: string,
+			listUrlEpisodes: string[],
+			logo: string,
+			back: any,
+			resumeTime?: number
+		};
+	};
 };
+type PlayerScreenNavigationProp = NavigationProp<RootStackParamList, 'Player'>;
 
 const remote = {
 	'left': 21,
@@ -114,7 +122,8 @@ const AnimeScreen = () => {
 	const [showAvailableSeasons, setShowAvailableSeasons] = useState<boolean>(false);
 	const [pageSelectedSeasons, setPageSelectedSeasons] = useState<number>(1);
 	const [idSelectedSeason, setIdSelectedSeason] = useState<number>(0);
-	const navigation = useNavigation();
+	const [resumeData, setResumeData] = useState<any>(null);
+	const navigation = useNavigation<PlayerScreenNavigationProp>();
 
 	useEffect(() => {
 		const	banGenre = ['vostfr', 'vf', 'cardlistanime', 'anime', '-', 'scans', 'film'];
@@ -168,7 +177,20 @@ const AnimeScreen = () => {
 			setListSeasons(allSeasons.slice(0, 12));
 		}).catch((error) => {
 			console.warn(error);
-		});		
+		});
+		fetch(urlApiGetProgress, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({id: anime.id}),
+		}).then((response) => {
+			return response.json();
+		}).then((data) => {
+			setResumeData(data);
+		}).catch((error) => {
+			console.warn(error);
+		});
 		setGenre(genreString);
 	}, []);
 
@@ -308,6 +330,48 @@ const AnimeScreen = () => {
 		{
 			if (leftPartFocused)
 			{
+				if (leftButtonSelected == 0 && resumeData && resumeData.find)
+				{
+					if (resumeData.status === 1)
+					{
+						Alert.alert('Attention', 'Vous avez déjà vu cette épisode, voulez-vous vraiment le recommencer ?', [
+							{
+								text: 'Non',
+								onPress: () => {},
+							},
+							{
+								text: 'Oui',
+								onPress: () => {
+									navigation.navigate('Player', {data: {
+										season: allSeasons,
+										episode: resumeData.episode,
+										selectedSeasons: allSeasons.indexOf(resumeData.season),
+										url: anime.url,
+										title: anime.title,
+										listUrlEpisodes: listUrlEpisodes,
+										logo: logo,
+										back: anime,
+									}});
+								}
+							}
+						]);
+					}
+					else
+					{
+						navigation.navigate('Player', {data: {
+							season: allSeasons,
+							episode: resumeData.episode,
+							selectedSeasons: allSeasons.indexOf(resumeData.season),
+							url: anime.url,
+							title: anime.title,
+							listUrlEpisodes: listUrlEpisodes,
+							logo: logo,
+							back: anime,
+							resumeTime: resumeData.progress,
+						}});
+					}
+
+				}
 				if (leftButtonSelected == 1)
 				{
 					setShowAvailableSeasons(!showAvailableSeasons);
@@ -385,8 +449,15 @@ const AnimeScreen = () => {
 					<Text style={styles.genre}>{genre.join(', ')}</Text>
 				</View>
 				<View>
-					<Text style={leftPartFocused && (leftButtonSelected == 0) ? styles.buttonSelected : styles.button}>Reprendre</Text>
-					<Text style={styles.underButton}>vostfr/saison1 episode 1</Text>
+					<Text style={[
+						leftPartFocused && (leftButtonSelected == 0) ? styles.buttonSelected : styles.button,
+						resumeData && resumeData.find ? {color: '#fff'} : {color: '#555555'}
+						]}>
+						Reprendre
+					</Text>
+					{resumeData && resumeData.find &&
+					<Text style={styles.underButton}>{resumeData.season} - Episode {resumeData.episode}</Text>
+					}
 				</View>
 				<View>
 					<Text style={leftPartFocused && (leftButtonSelected == 1)? styles.buttonSelected : styles.button}>Changer de saison</Text>

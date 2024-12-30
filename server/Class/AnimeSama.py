@@ -66,13 +66,11 @@ class AnimeSama:
 			img = anime.find('img')['src']
 			all_anime.append({'title': title, 'alternative_title': alternative_title, 'genre': anime['class'], 'url': url, 'img': img})
 		for anime in all_anime:
-			anime['title'] = anime['title'].capitalize()
+			anime['title'] = anime['title'].title()
 			if anime['alternative_title']:
-				anime['alternative_title'] = anime['alternative_title'].capitalize()
-			anime['genre'] = [genre.capitalize() for genre in anime['genre']]
+				anime['alternative_title'] = anime['alternative_title'].title()
+			anime['genre'] = [genre.replace('-', ' ').capitalize() for genre in anime['genre']]
 		all_anime.sort(key=lambda x: x['title'])
-		for anime in all_anime:
-			self.db.insert_anime(anime)
 		for anime in all_anime:
 			self.db.insert_anime(anime)
 
