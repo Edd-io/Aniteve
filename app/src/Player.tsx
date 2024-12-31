@@ -343,7 +343,9 @@ const PlayerScreen = () => {
 				<View style={[styles.overlay, {zIndex: 3}]}>
 					<View style={styles.loadingBackground}></View>
 					<View style={styles.logoContainer}>
+						{data.logo &&
 						<Image source={{uri: data.logo}} style={styles.logo} resizeMode='contain'/>
+						}
 					</View>
 					<Text style={[styles.text, {textAlign: 'right', marginTop: 20, marginRight: 20}]}>{capitalize(String(data.season).split('/')[0])} - Episode {newValueEpisode}</Text>
 					<Text style={[styles.text, {textAlign: 'right', marginRight: 20, color: "#ffffff90"}]}>{secondsToHms(currentTime)} / {secondsToHms(totalTime)}</Text>
@@ -376,7 +378,9 @@ const PlayerScreen = () => {
 				<View style={styles.overlay}>
 					<View style={styles.loadingBackground}></View>
 					<View style={styles.logoContainer}>
+						{data.logo &&
 						<Image source={{uri: data.logo}} style={styles.logo} resizeMode='contain'/>
+						}
 						<ActivityIndicator color="#fff" style={styles.loadingCircle} size={500}/>
 					</View>
 				</View>

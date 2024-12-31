@@ -2,11 +2,13 @@ from flask import Flask, request, jsonify
 from Class.Database import Database
 from Class.AnimeSama import AnimeSama
 from Class.Proxy import Proxy
+from get_anime_status import get_anime_status
 import ast
 
 db = Database()
 site = AnimeSama(db)
 app = Flask(__name__)
+get_anime_status(db)
 	
 @app.route('/api/get_all_anime')
 def get_all_anime():

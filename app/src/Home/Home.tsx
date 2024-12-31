@@ -1,5 +1,5 @@
 import React, {useState, useCallback, useEffect, useRef} from 'react';
-import { View, Text, StyleSheet, TextInput, Image, FlatList, NativeModules, DeviceEventEmitter, Alert, BackHandler, Keyboard } from 'react-native';
+import { View, Text, StyleSheet, TextInput, Image, FlatList, NativeModules, DeviceEventEmitter, Keyboard } from 'react-native';
 import { LinearGradient } from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import remoteControl from './remoteControl';
@@ -211,14 +211,22 @@ const HomeScreen = () =>
 			}
 		}
 		setAnimeList(anime_list.search.slice(range.start, range.end));
-		setSelectedAnimeVisual(2);
-		setSelectedAnimeId(arrIdAnime[0] ? arrIdAnime[0] : -2);
-		flatListRef.current?.scrollToOffset({ animated: false, offset: 0 });
+		if (searchInput.length == 0)
+		{
+			setSelectedAnimeVisual(last.selectedAnime);
+			setSelectedAnimeId(last.selectedAnime);
+		}
+		else
+		{
+			setSelectedAnimeVisual(2);
+			setSelectedAnimeId(arrIdAnime[0] ? arrIdAnime[0] : -2);
+			flatListRef.current?.scrollToOffset({ animated: false, offset: 0 });
+		}
 	}, [searchInput, refreshSearchList]);
 
 	useEffect(() => {
 		fetch(urlApiGetAllAnime).then((response) => {
-			return response.json();
+			return (response.json());
 		}).then((data) => {
 			anime_list.complete = data.anime_list;
 			setRefreshSearchList(!refreshSearchList);

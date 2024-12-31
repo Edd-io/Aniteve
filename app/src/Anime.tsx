@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Image, StyleSheet, Text, View, DeviceEventEmitter, FlatList, Alert} from 'react-native';
+import { Image, StyleSheet, Text, View, DeviceEventEmitter, FlatList, Alert, ActivityIndicator} from 'react-native';
 import { useRoute, RouteProp, useNavigation, NavigationProp } from '@react-navigation/native';
 import { LinearGradient } from 'react-native-linear-gradient';
 import credentials from '../credentials.json';
@@ -36,6 +36,7 @@ const remote = {
 	'return': 4,
 	'confirm': 23,
 }
+let imageWhoNeedToLoaded = 2;
 
 const get_data_from_tmdb = async (id: string) => {
 	let isMovie = false;
@@ -54,10 +55,7 @@ const get_data_from_tmdb = async (id: string) => {
 		data = await response.json();
 		idAnime = data?.results.filter((result: any) => result.genre_ids.includes(16))[0]?.id;
 		if (!idAnime)
-		{
-			console.log('no anime found');
 			return (null);
-		}
 	}
 
 	// get all data from the anime 
@@ -66,35 +64,24 @@ const get_data_from_tmdb = async (id: string) => {
 	// const data3 = await response3.json();
 	// console.log(data3);
 
-	const url2 = `https://api.themoviedb.org/3/${isMovie ? 'movie' : 'tv'}/${idAnime}/images?api_key=${credentials.key_api_tmbd}&include_image_language=jp,en,null`;
+	const url2 = `https://api.themoviedb.org/3/${isMovie ? 'movie' : 'tv'}/${idAnime}/images?api_key=${credentials.key_api_tmbd}&include_image_language=ja,en,null`;
 	let response2 = await fetch(url2);
 	let data2 = await response2.json();
-
-	if (data2.logos.length === 0) {
-		const fallbackUrl = `https://api.themoviedb.org/3/${isMovie ? 'movie' : 'tv'}/${idAnime}/images?api_key=${credentials.key_api_tmbd}&include_image_language=null`;
+	if (data2.logos.length === 0) 
+	{
+		const fallbackUrl = `https://api.themoviedb.org/3/${isMovie ? 'movie' : 'tv'}/${idAnime}/images?api_key=${credentials.key_api_tmbd}`;
 		response2 = await fetch(fallbackUrl);
 		data2 = await response2.json();
 	}
 	return (data2);
 }
 
-const Background = ({ img }: any) => {
+const LoadingScreen = ({animeName, loadedImg}: any) => {
 	return (
-		<View style={{flex: 1, position: 'absolute', width: '100%', height: '100%'}}>
-			{img &&
-			<Image
-				source={{ uri: img }}
-				style={{ width: '100%', height: '100%', position: 'absolute' }}
-			/>
-			}
-			<LinearGradient
-				colors={
-					['rgba(0, 0, 0, 0.9)', 'rgba(0, 0, 0, 0)']
-				}
-				style={styles.gradientOverlay}
-				start={{ x: 0, y: 0 }}
-				end={{ x: 1, y: 0 }}
-			/>
+		<View style={[styles.LoadingScreen]}>
+			<Text style={{color: '#fff', fontSize: 20, margin: 0}}>{animeName}</Text>
+			<Text style={{color: '#aaa', fontSize: 20, margin: 20}}>Chargement</Text>
+			<ActivityIndicator size='large' color='#fff' />
 		</View>
 	);
 }
@@ -112,6 +99,7 @@ const AnimeScreen = () => {
 	const [leftButtonSelected, setLeftButtonSelected] = useState<number>(0); // 0 = reprendre, 1 = saison, 2 = retour
 	const [leftPartFocused, setLeftPartFocused] = useState<boolean>(true); // true = left, false = right
 	const [needRefresh, setNeedRefresh] = useState<boolean>(false);
+	const [loadedImg, setLoadedImg] = useState<number>(0);
 	
 	const [epsFocused, setEpsFocused] = useState<number>(1);
 	const [listEps, setListEps] = useState<number[]>([]);
@@ -129,6 +117,7 @@ const AnimeScreen = () => {
 		const	banGenre = ['vostfr', 'vf', 'cardlistanime', 'anime', '-', 'scans', 'film'];
 		let		genreString :string[] = [];
 
+		imageWhoNeedToLoaded = 2;
 		get_data_from_tmdb(anime.title).then((data) => {
 			let logoData = null;
 			let i = 0;
@@ -142,6 +131,7 @@ const AnimeScreen = () => {
 				}
 				i++;
 			}
+			imageWhoNeedToLoaded = (logoData ? 1 : 0) + (data?.backdrops[0] ? 1 : 0);
 			if (logoData)
 				setLogo(base_url_tmdb + logoData.file_path);
 			const backdropData = data?.backdrops[0];
@@ -222,7 +212,7 @@ const AnimeScreen = () => {
 
 		if (data.screen !== 'Anime')
 			return ;
-		if (keycode == remote.up)
+		if (keycode == remote.up && loadedImg == imageWhoNeedToLoaded)
 		{
 			if (!leftPartFocused)
 			{
@@ -243,7 +233,7 @@ const AnimeScreen = () => {
 					setLeftButtonSelected(leftButtonSelected - 1);
 			}
 		}
-		else if (keycode == remote.down)
+		else if (keycode == remote.down && loadedImg == imageWhoNeedToLoaded)
 		{
 			if (!leftPartFocused)
 			{
@@ -264,7 +254,7 @@ const AnimeScreen = () => {
 					setLeftButtonSelected(leftButtonSelected + 1);
 			}
 		}
-		else if (keycode == remote.left)
+		else if (keycode == remote.left && loadedImg == imageWhoNeedToLoaded)
 		{
 			if (!leftPartFocused)
 			{
@@ -290,7 +280,7 @@ const AnimeScreen = () => {
 				}
 			}
 		}
-		else if (keycode == remote.right)
+		else if (keycode == remote.right && loadedImg == imageWhoNeedToLoaded)
 		{
 			if (leftPartFocused)
 				setLeftPartFocused(false);
@@ -325,7 +315,7 @@ const AnimeScreen = () => {
 				setLeftPartFocused(true);
 
 		}
-		else if (keycode == remote.confirm)
+		else if (keycode == remote.confirm && loadedImg == imageWhoNeedToLoaded)
 		{
 			if (leftPartFocused)
 			{
@@ -371,11 +361,13 @@ const AnimeScreen = () => {
 					}
 
 				}
-				if (leftButtonSelected == 1)
+				else if (leftButtonSelected == 1)
 				{
 					setShowAvailableSeasons(!showAvailableSeasons);
 					setLeftPartFocused(false);
 				}
+				else if (leftButtonSelected == 2)
+					navigation.goBack();
 			}
 			else
 			{
@@ -438,10 +430,38 @@ const AnimeScreen = () => {
 
 	return (
 		<View style={styles.body}>
-			<Background img={BackgroundImg} />
+			{loadedImg < imageWhoNeedToLoaded &&
+			<LoadingScreen animeName={anime.title} loadedImg={loadedImg} />
+			}
+			<View style={{flex: 1, position: 'absolute', width: '100%', height: '100%'}}>
+				{BackgroundImg &&
+				<Image
+					source={{ uri: BackgroundImg }}
+					style={{ width: '100%', height: '100%', position: 'absolute' }}
+					onLoad={() => {
+						setLoadedImg(prevLoadedImg => prevLoadedImg + 1);
+					}}
+				/>
+				}
+				<LinearGradient
+					colors={
+						['rgba(0, 0, 0, 0.9)', 'rgba(0, 0, 0, 0)']
+					}
+					style={styles.gradientOverlay}
+					start={{ x: 0, y: 0 }}
+					end={{ x: 1, y: 0 }}
+				/>
+			</View>
 			<View style={styles.contentLeft}>
 				{logo &&
-				<Image source={{ uri: logo }} style={{width: 300, height: 160}} resizeMode='contain' />
+				<Image
+					source={{ uri: logo }}
+					style={{width: 300, height: 160}}
+					resizeMode='contain'
+					onLoad={() => {
+						setLoadedImg(loadedImg + 1);
+					}}
+				/>
 				}
 				<View>
 					<Text style={styles.title}>{anime.title}</Text>
@@ -597,6 +617,16 @@ const styles = StyleSheet.create({
 		textAlign: 'center',
 		margin: 2,
 	},
+	LoadingScreen: {
+		flex: 1,
+		position: 'absolute',
+		width: '100%',
+		height: '100%',
+		alignItems: 'center',
+		justifyContent: 'center',
+		zIndex: 10,
+		backgroundColor: '#333',
+	}
 });
 
 export default AnimeScreen;

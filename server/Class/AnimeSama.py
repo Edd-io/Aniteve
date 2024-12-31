@@ -3,30 +3,30 @@ import requests
 import subprocess
 import json
 
-SERV_URL_SRCFILE = 'http://192.168.1.172:8080' + '/api/srcFile?'
-SERV_URL_VIDEO = 'http://192.168.1.172:8080' + '/api/video?'
-AVAILABLE_PLAYER = ['sibnet', 'oneupload', 'sendvid', 'vidmoly']
-js_function = '''
-function parseFileEpisode()
-{
-	let i = 1;
-	let data = {};
-
-	while (1)
+SERV_URL_SRCFILE	= 'http://192.168.1.172:8080' + '/api/srcFile?'
+SERV_URL_VIDEO		= 'http://192.168.1.172:8080' + '/api/video?'
+AVAILABLE_PLAYER	= ['sibnet', 'oneupload', 'sendvid', 'vidmoly']
+JS_FUNCTION			= '''
+	function parseFileEpisode()
 	{
-		if (!global['eps' + i])
-			break ;
-		for (let j = 1; j < global['eps' + i].length + 1; j++)
+		let i = 1;
+		let data = {};
+
+		while (1)
 		{
-			if (data['eps' + j] == undefined)
-				data['eps' + j] = [];
-			data['eps' + j].push(global['eps' + i][j - 1]);
+			if (!global['eps' + i])
+				break ;
+			for (let j = 1; j < global['eps' + i].length + 1; j++)
+			{
+				if (data['eps' + j] == undefined)
+					data['eps' + j] = [];
+				data['eps' + j].push(global['eps' + i][j - 1]);
+			}
+			i++;
 		}
-		i++;
+		return (data);
 	}
-	return (data);
-}
-console.log(JSON.stringify(parseFileEpisode()));
+	console.log(JSON.stringify(parseFileEpisode()));
 '''
 
 class AnimeSama:
@@ -105,11 +105,10 @@ class AnimeSama:
 	
 	def get_anime_episodes(self, anime):
 		response = requests.get(anime['url'] + '/' + anime['season'] + '/episodes.js')
-		if (response.status_code != 200):
-			return ({'episodes': {}, 'number': 0})
-		data = response.text
-		data += '\n' + js_function
-		process = subprocess.run(
+		if (response.sta	us_code != 200):
+			return ({'		pisodes': {}, 'number': 0})
+		data = response.	ext
+		data += '\n' + JS_FUNCTION					process = subprocess.run(
 			['node', '-e', data],
 			capture_output=True,
 			text=True

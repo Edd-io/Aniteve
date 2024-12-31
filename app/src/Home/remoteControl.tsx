@@ -27,11 +27,14 @@ const remoteControl = ({selectedAnimeId, setSelectedAnimeId, selectedAnimeVisual
 	useEffect(() => {
 		const unsubscribe = navigation.addListener('focus', () => {
 			setSelectedAnimeId(last.selectedAnime);
-			range.start = lastRangeStart;
-			range.end = lastRangeEnd;
-			setAnimeList(anime_list.search.slice(range.start, range.end));
-			if (last.selectedAnime > 5)
-				flatListRef.current?.scrollToOffset({ animated: false, offset: 100 });
+			if (range.start !== lastRangeStart || range.end !== lastRangeEnd)
+			{
+				range.start = lastRangeStart;
+				range.end = lastRangeEnd;
+				setAnimeList(anime_list.search.slice(range.start, range.end));
+				if (last.selectedAnime > 5)
+					flatListRef.current?.scrollToOffset({ animated: false, offset: 100 });
+			}
 			DeviceEventEmitter.removeAllListeners('remoteKeyPress');
 			DeviceEventEmitter.addListener('remoteKeyPress', handleKeyPress);
 			TestNativeModule.userHasGetUp();
