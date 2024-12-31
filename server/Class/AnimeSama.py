@@ -70,6 +70,14 @@ class AnimeSama:
 			if anime['alternative_title']:
 				anime['alternative_title'] = anime['alternative_title'].title()
 			anime['genre'] = [genre.replace('-', ' ').capitalize() for genre in anime['genre']]
+			if "Cardlistanime" in anime['genre']:
+				anime['genre'].remove("Cardlistanime")
+			k = len(anime['genre']) - 1
+			while k >= 0:
+				if anime['genre'][k].strip() == '':
+					anime['genre'].pop(k)
+				k -= 1
+
 		all_anime.sort(key=lambda x: x['title'])
 		for anime in all_anime:
 			self.db.insert_anime(anime)

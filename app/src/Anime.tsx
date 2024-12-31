@@ -129,7 +129,6 @@ const AnimeScreen = () => {
 		const	banGenre = ['vostfr', 'vf', 'cardlistanime', 'anime', '-', 'scans', 'film'];
 		let		genreString :string[] = [];
 
-		console.log(anime);
 		get_data_from_tmdb(anime.title).then((data) => {
 			let logoData = null;
 			let i = 0;

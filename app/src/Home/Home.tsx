@@ -36,11 +36,7 @@ const AnimeItem = React.memo(({ item, selectedAnimeId }: any) => {
 	if (isSelected)
 	{
 		if (animationBorderSelected.id != item.id && animationBorderSelected.setWidthBorderFunc !== null)
-		{
-			animationBorderSelected.setWidthBorderFunc(0);
-			clearTimeout(animationBorderSelected.timeout);
 			speed = 0;
-		}
 		animationBorderSelected = {
 			id: item.id,
 			setWidthBorderFunc: setWidthBorder,
@@ -63,13 +59,13 @@ const AnimeItem = React.memo(({ item, selectedAnimeId }: any) => {
 						borderWidth: selectedAnimeId < 2 ? 0 : isSelected ? widthBorder : 0,
 					}
 				]}
-				onError={(e) => console.log('Erreur de chargement de l\'image:', e.nativeEvent.error)}
+				onError={(e) => console.log('Error loading image', e)}
 			/>
 		</View>
 	);
 });
 
-const TopBar = ({ selectedAnimeId, refTextInput, setSearchInput}: any) => {
+const TopBar = ({ selectedAnimeId, refTextInput, setSearchInput, popupResume}: any) => {
 	return (
 		<View style={styles.topBar}>
 			<Text style={styles.aniteve}>Aniteve</Text>
@@ -83,7 +79,7 @@ const TopBar = ({ selectedAnimeId, refTextInput, setSearchInput}: any) => {
 					/>
 					<Image source={require('../../assets/img/search.png')} style={{width: 20, height: 20}} />
 				</View>
-				<View style={[styles.topBarButtons, {backgroundColor: selectedAnimeId === 0 ? '#ffffff30' : 'transparent', overflow: 'hidden'}]}>
+				<View style={[styles.topBarButtons, {backgroundColor: !popupResume && (selectedAnimeId === 0) ? '#ffffff30' : 'transparent', overflow: 'hidden'}]}>
 					<Image source={require('../../assets/img/resume.png')} style={{width: 30, height: 30}} resizeMode='contain' />
 				</View>
 				<View style={[styles.topBarButtons, {backgroundColor: selectedAnimeId === 1 ? '#ffffff30' : 'transparent', overflow: 'hidden'}]}>
@@ -175,7 +171,16 @@ const HomeScreen = () =>
 	useEffect(() => {
 		const handleNativeKey = () => {
 			TestNativeModule.resolveTest().then((res: any) => {
-				DeviceEventEmitter.emit('remoteKeyPress', {screen: navigation.getState()?.routeNames[navigation.getState()?.index], keycode: parseInt(res)});
+				let actualScreen = null;
+
+				if (popupResume)
+					actualScreen = 'ResumePopup';
+				else
+					actualScreen = navigation.getState()?.routeNames[navigation.getState()?.index]
+				DeviceEventEmitter.emit('remoteKeyPress', {
+					screen: actualScreen,
+					keycode: parseInt(res)
+				});
 				setRefresh(!refresh);
 			});
 		};
@@ -227,7 +232,7 @@ const HomeScreen = () =>
 		<AnimeItem item={item} selectedAnimeId={selectedAnimeId} />
 	), [selectedAnimeId]);
 
-	remoteControl({selectedAnimeId, setSelectedAnimeId, selectedAnimeVisual, searchInput, setSelectedAnimeVisual, anime_list, setAnimeList, range, setSearchInput, refTextInput, flatListRef, navigation, arrIdAnime, last});
+	remoteControl({selectedAnimeId, setSelectedAnimeId, selectedAnimeVisual, searchInput, setSelectedAnimeVisual, anime_list, setAnimeList, range, setSearchInput, refTextInput, flatListRef, navigation, arrIdAnime, last, setPopupResume});
 
 	return (
 		<View style={{flex: 1, backgroundColor: '#222'}}>
@@ -235,10 +240,11 @@ const HomeScreen = () =>
 				selectedAnimeId={selectedAnimeId}
 				refTextInput={refTextInput}
 				setSearchInput={setSearchInput}
+				popupResume={popupResume}
 			/>
 			{
 				popupResume && 
-				<ResumePopup />
+				<ResumePopup setPopupResume={setPopupResume} navigation={navigation} />
 			}
 			<AnimeInfo anime={anime_list.complete[selectedAnimeId - 2]} selectedAnimeId={selectedAnimeId} />
 			<FlatList

@@ -1,5 +1,6 @@
 import sqlite3
 from time import sleep
+import ast
 
 class Database:
 	def __init__(self):
@@ -56,7 +57,7 @@ class Database:
 		cursor.close()
 		return (anime_list)
 
-	# status: 0 = watching, 1 = completed
+	# status: 0 = watching, 1 = completed, 2 = new episode, 3 = new season
 	def update_progress(self, anime):
 		cursor = self.conn.cursor()
 		isPresent = cursor.execute('''
@@ -113,6 +114,26 @@ class Database:
 	def get_all_progress(self):
 		cursor = self.conn.cursor()
 		progress = cursor.execute('''
-			SELECT * FROM progress''').fetchall()
+			SELECT progress.*, datetime(progress.see_date, 'localtime') AS local_see_date, anime_list.*
+			FROM progress
+			JOIN anime_list ON progress.id_anime = anime_list.id
+			ORDER BY progress.see_date DESC
+		''').fetchall()
 		cursor.close()
+		print(progress)
+		for i in range(len(progress)):
+			progress[i] = {
+				"anime": {
+					"title": progress[i][9],
+					"alternative_title": progress[i][10],
+					"genre": ast.literal_eval(progress[i][11]),
+					"id": progress[i][1],
+					"img": progress[i][13],
+					"url": progress[i][12],
+				},
+				"episode": progress[i][2],
+				"season": progress[i][3],
+				"progress": progress[i][4],
+				"completed": progress[i][5],
+			}
 		return (progress)

@@ -22,7 +22,7 @@ let		lastRangeEnd = 12;
 
 const remoteControl = ({selectedAnimeId, setSelectedAnimeId, selectedAnimeVisual, searchInput,
 	setSelectedAnimeVisual, anime_list, setAnimeList, range, setSearchInput, refTextInput, 
-	flatListRef, navigation, arrIdAnime, last}: any) => {
+	flatListRef, navigation, arrIdAnime, last, setPopupResume}: any) => {
 
 	useEffect(() => {
 		const unsubscribe = navigation.addListener('focus', () => {
@@ -155,9 +155,7 @@ const remoteControl = ({selectedAnimeId, setSelectedAnimeId, selectedAnimeVisual
 			refTextInput.current?.focus();
 		}
 		else if (selectedAnimeId === 0)
-		{
-
-		}
+			setPopupResume(true);
 		else if (selectedAnimeId === 1)
 		{
 		}

@@ -113,10 +113,8 @@ def get_progress():
 	
 @app.route('/api/get_all_progress')
 def get_all_progress():
-	anime = request.get_json()
-
 	try:
-		progress = db.get_all_progress(anime)
+		progress = db.get_all_progress()
 		return (progress)
 	except Exception as e:
 		return {'error': str(e)}
