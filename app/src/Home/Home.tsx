@@ -102,14 +102,14 @@ const HomeScreen = () =>
 
 const AnimeItem = React.memo(({ item, selectedAnimeId }: any) => {
 	const [widthBorder, setWidthBorder] = useState(0);
-	const isSelected = selectedAnimeId === (item.id + 1);
+	const isSelected = selectedAnimeId === (item.idInList + 1);
 
 	if (isSelected)
 	{
-		if (animationBorderSelected.id != item.id && animationBorderSelected.setWidthBorderFunc !== null)
+		if (animationBorderSelected.id != item.idInList && animationBorderSelected.setWidthBorderFunc !== null)
 			speed = 0;
 		animationBorderSelected = {
-			id: item.id,
+			id: item.idInList,
 			setWidthBorderFunc: setWidthBorder,
 			timeout: setTimeout(() => {
 				let width = Math.sin(speed) + 1.5;

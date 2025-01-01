@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { Image, StyleSheet, Text, View, DeviceEventEmitter, FlatList, Alert, ActivityIndicator} from 'react-native';
+import { Image, StyleSheet, Text, View, FlatList, ActivityIndicator} from 'react-native';
 import { useRoute, RouteProp, useNavigation, NavigationProp } from '@react-navigation/native';
 import { LinearGradient } from 'react-native-linear-gradient';
 import credentials from '../../credentials.json';
 import remoteControl from './remoteControl';
+import InfoPopup from './InfoPopup';
 import { localData } from '../Default';
 
-const base_url_tmdb		= 'https://image.tmdb.org/t/p/original';
+const base_url_tmdb	= 'https://image.tmdb.org/t/p/original';
 
 type RouteParams = {
 	anime: any;
@@ -27,48 +28,77 @@ type RootStackParamList = {
 	};
 };
 type PlayerScreenNavigationProp = NavigationProp<RootStackParamList, 'Player'>;
+const dataAnime: any = {
+	title: '',
+	firstAirDate: '',
+	name: '',
+	originalName: '',
+	overview: '',
+	poster: '',
+	popularity: 0,
+	note: 0,
+	nbVotes: 0,
+	noData: true,
+}
 
 let imageWhoNeedToLoaded = 2;
 
-const get_data_from_tmdb = async (id: string) => {
-	let isMovie = false;
+const get_data_from_tmdb = async (id: string, isMovie: boolean) => {
+	let allDiff: any = [];
+	let response = null;
+	let data = null;
+	let url = null;
+	let allAnimeData = [];
 
-	id = id.replace('&', 'and');
-	let url = `https://api.themoviedb.org/3/search/tv?api_key=${credentials.key_api_tmbd}&query=${id}`;
-	let response = await fetch(url);
-	let data = await response.json();
-	let idAnime: number = data?.results.filter((result: any) => result.genre_ids.includes(16))[0]?.id;
-
-	if (!idAnime)
+	if (!isMovie)
 	{
-		isMovie = true;
-		url = `https://api.themoviedb.org/3/search/movie?api_key=${credentials.key_api_tmbd}&query=${id}`;
+		url = `https://api.themoviedb.org/3/search/tv?api_key=${credentials.key_api_tmbd}&query=${id}&language=fr-FR`;
 		response = await fetch(url);
 		data = await response.json();
-		idAnime = data?.results.filter((result: any) => result.genre_ids.includes(16))[0]?.id;
-		if (!idAnime)
-			return (null);
+		allAnimeData = data?.results.filter((result: any) => result.genre_ids.includes(16));
 	}
+	else
+	{
+		url = `https://api.themoviedb.org/3/search/movie?api_key=${credentials.key_api_tmbd}&query=${id}&language=fr-FR`;
+		response = await fetch(url);
+		data = await response.json();
+		allAnimeData = data?.results.filter((result: any) => result.genre_ids.includes(16));
+	}
+	if (allAnimeData.length === 0)
+	{
+		dataAnime.noData = true;
+		return (null);
+	}
+	for (let i = 0; i < allAnimeData.length; i++)
+		allDiff.push(allAnimeData[i][isMovie ? 'title' : 'name'].length - id.length);
+	
+	let animeData = allAnimeData[allDiff.indexOf(Math.min(...allDiff))];
+	let idAnime: number = animeData?.id;
 
-	// get all data from the anime 
-	// const url3 = `https://api.themoviedb.org/3/tv/${idAnime}?api_key=${credentials.key_api_tmbd}&language=fr-FR`;
-	// const response3 = await fetch(url3);
-	// const data3 = await response3.json();
-	// console.log(data3);
+	dataAnime.title = animeData.title ? animeData.title : animeData.name;
+	dataAnime.firstAirDate = animeData.first_air_date;
+	dataAnime.name = animeData.name;
+	dataAnime.originalName = animeData.original_name;
+	dataAnime.overview = animeData.overview;
+	dataAnime.poster = base_url_tmdb + animeData.poster_path;
+	dataAnime.popularity = animeData.popularity;
+	dataAnime.note = animeData.vote_average;
+	dataAnime.nbVotes = animeData.vote_count;
+	dataAnime.noData = false;
 
-	const url2 = `https://api.themoviedb.org/3/${isMovie ? 'movie' : 'tv'}/${idAnime}/images?api_key=${credentials.key_api_tmbd}&include_image_language=ja,en,null`;
-	let response2 = await fetch(url2);
-	let data2 = await response2.json();
-	if (data2.logos.length === 0) 
+	url = `https://api.themoviedb.org/3/${isMovie ? 'movie' : 'tv'}/${idAnime}/images?api_key=${credentials.key_api_tmbd}&include_image_language=ja,en,null`;
+	response = await fetch(url);
+	data = await response.json();
+	if (data.logos.length === 0) 
 	{
 		const fallbackUrl = `https://api.themoviedb.org/3/${isMovie ? 'movie' : 'tv'}/${idAnime}/images?api_key=${credentials.key_api_tmbd}`;
-		response2 = await fetch(fallbackUrl);
-		data2 = await response2.json();
+		response = await fetch(fallbackUrl);
+		data = await response.json();
 	}
-	return (data2);
+	return (data);
 }
 
-const LoadingScreen = ({animeName, loadedImg}: any) => {
+const LoadingScreen = ({animeName}: any) => {
 	return (
 		<View style={[styles.LoadingScreen]}>
 			<Text style={{color: '#fff', fontSize: 20, margin: 0}}>{animeName}</Text>
@@ -92,6 +122,7 @@ const AnimeScreen = () => {
 	const [leftPartFocused, setLeftPartFocused] = useState<boolean>(true); // true = left, false = right
 	const [needRefresh, setNeedRefresh] = useState<boolean>(false);
 	const [loadedImg, setLoadedImg] = useState<number>(0);
+	const [popupInfo, setPopupInfo] = useState<boolean>(false);
 	
 	const [epsFocused, setEpsFocused] = useState<number>(1);
 	const [listEps, setListEps] = useState<number[]>([]);
@@ -106,32 +137,13 @@ const AnimeScreen = () => {
 	const navigation = useNavigation<PlayerScreenNavigationProp>();
 
 	useEffect(() => {
+		setTimeout(() => {
+			setLoadedImg(3);
+		}, 2000);
 		const	banGenre = ['vostfr', 'vf', 'cardlistanime', 'anime', '-', 'scans', 'film'];
 		let		genreString :string[] = [];
 
 		imageWhoNeedToLoaded = 2;
-		get_data_from_tmdb(anime.title).then((data) => {
-			let logoData = null;
-			let i = 0;
-
-			while (data && data.logos[i])
-			{
-				if (!data.logos[i].file_path.includes('svg') && data.logos[i].iso_639_1 != 'ko')
-				{
-					logoData = data.logos[i];
-					break ;
-				}
-				i++;
-			}
-			imageWhoNeedToLoaded = (logoData ? 1 : 0) + (data?.backdrops[0] ? 1 : 0);
-			if (logoData)
-				setLogo(base_url_tmdb + logoData.file_path);
-			const backdropData = data?.backdrops[0];
-			if (backdropData)
-				setBackgroundImg(base_url_tmdb + backdropData.file_path);
-			else
-				setBackgroundImg(anime.img);
-		});
 		anime?.genre?.map((genre: string) => {
 			if (!banGenre.includes(genre.toLowerCase()))
 				genreString?.push(genre); 
@@ -146,6 +158,7 @@ const AnimeScreen = () => {
 			return response.json();
 		}).then((data) => {
 			let season = data.season;
+			let isMovie = false;
 		
 			if (anime.genre.includes('Vf'))
 			{
@@ -156,6 +169,29 @@ const AnimeScreen = () => {
 			}
 			allSeasons = season;
 			setListSeasons(allSeasons.slice(0, 12));
+			isMovie = season[0]?.toLowerCase().includes('film');
+			get_data_from_tmdb(anime.title, isMovie).then((data) => {
+				let logoData = null;
+				let i = 0;
+	
+				while (data && data.logos[i])
+				{
+					if (!data.logos[i].file_path.includes('svg') && data.logos[i].iso_639_1 != 'ko')
+					{
+						logoData = data.logos[i];
+						break ;
+					}
+					i++;
+				}
+				imageWhoNeedToLoaded = (logoData ? 1 : 0) + (data?.backdrops[0] ? 1 : 0);
+				if (logoData)
+					setLogo(base_url_tmdb + logoData.file_path);
+				const backdropData = data?.backdrops[0];
+				if (backdropData)
+					setBackgroundImg(base_url_tmdb + backdropData.file_path);
+				else
+					setBackgroundImg(anime.img);
+			});
 		}).catch((error) => {
 			console.warn(error);
 		});
@@ -187,7 +223,6 @@ const AnimeScreen = () => {
 		}).then((response) => {
 			return response.json();
 		}).then((data) => {
-			console.log(data);
 			nbEpisodes = data.number;
 			listUrlEpisodes = data.episodes;
 			if (nbEpisodes >= 12)
@@ -233,13 +268,16 @@ const AnimeScreen = () => {
 		setEpsFocused, epsFocused, setLeftPartFocused, leftPartFocused, setShowAvailableSeasons,
 		showAvailableSeasons, setOnSelectedSeasons, onSelectedSeasons, listSeasons, pageSelected,
 		setPageSelected, pageSelectedSeasons, setPageSelectedSeasons, leftButtonSelected,
-		setLeftButtonSelected, idSelectedSeason, setIdSelectedSeason, setListSeasons
+		setLeftButtonSelected, idSelectedSeason, setIdSelectedSeason, setListSeasons, setPopupInfo, popupInfo
 	});
 
 	return (
 		<View style={styles.body}>
 			{loadedImg < imageWhoNeedToLoaded &&
-			<LoadingScreen animeName={anime.title} loadedImg={loadedImg} />
+			<LoadingScreen animeName={anime.title} />
+			}
+			{popupInfo &&
+				<InfoPopup animeData={dataAnime} setPopupInfo={setPopupInfo} />
 			}
 			<View style={{flex: 1, position: 'absolute', width: '100%', height: '100%'}}>
 				{BackgroundImg &&
@@ -290,9 +328,7 @@ const AnimeScreen = () => {
 					<Text style={leftPartFocused && (leftButtonSelected == 1)? styles.buttonSelected : styles.button}>Changer de saison</Text>
 					<Text style={styles.underButton}>{allSeasons[idSelectedSeason]}</Text>
 				</View>
-				<View style={{flex: 1, justifyContent: 'flex-end'}}>
-					<Text style={leftPartFocused && (leftButtonSelected == 2) ? styles.buttonSelected : styles.button}>Retour</Text>
-				</View>
+				<Text style={leftPartFocused && (leftButtonSelected == 2)? styles.buttonSelected : styles.button}>Information</Text>
 			</View>
 			<View style={styles.contentRight}>
 				<View style={styles.island}>

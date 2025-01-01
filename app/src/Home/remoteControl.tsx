@@ -17,8 +17,6 @@ const remote = {
 }
 
 const	{TestNativeModule} = NativeModules;
-let		lastRangeStart = 0;
-let		lastRangeEnd = 12;
 
 const remoteControl = ({selectedAnimeId, setSelectedAnimeId, selectedAnimeVisual, searchInput,
 	setSelectedAnimeVisual, anime_list, setAnimeList, range, setSearchInput, refTextInput, 
@@ -27,14 +25,6 @@ const remoteControl = ({selectedAnimeId, setSelectedAnimeId, selectedAnimeVisual
 	useEffect(() => {
 		const unsubscribe = navigation.addListener('focus', () => {
 			setSelectedAnimeId(last.selectedAnime);
-			if (range.start !== lastRangeStart || range.end !== lastRangeEnd)
-			{
-				range.start = lastRangeStart;
-				range.end = lastRangeEnd;
-				setAnimeList(anime_list.search.slice(range.start, range.end));
-				if (last.selectedAnime > 5)
-					flatListRef.current?.scrollToOffset({ animated: false, offset: 100 });
-			}
 			DeviceEventEmitter.removeAllListeners('remoteKeyPress');
 			DeviceEventEmitter.addListener('remoteKeyPress', handleKeyPress);
 			TestNativeModule.userHasGetUp();
@@ -147,8 +137,6 @@ const remoteControl = ({selectedAnimeId, setSelectedAnimeId, selectedAnimeVisual
 		if (selectedAnimeId > 1)
 		{
 			last.selectedAnime = selectedAnimeId;
-			lastRangeStart = range.start;
-			lastRangeEnd = range.end;
 			navigation.navigate('Anime', {anime: anime_list.complete[selectedAnimeId - 2]});
 		}
 		else if (selectedAnimeId === -1)

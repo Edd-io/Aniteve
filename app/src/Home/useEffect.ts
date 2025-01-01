@@ -69,6 +69,9 @@ function fetchCompleteAnimeList(setAnimeList: any, anime_list: any, range: any, 
 	fetch(localData.addr + '/api/get_all_anime').then((response) => {
 		return (response.json());
 	}).then((data) => {
+		let animeList = data.anime_list;
+		for (let i = 0; i < animeList.length; i++)
+			animeList[i].idInList = i + 1;
 		anime_list.complete = data.anime_list;
 		setRefreshSearchList(!refreshSearchList);
 		setAnimeList(anime_list.complete.slice(range.start, range.end));

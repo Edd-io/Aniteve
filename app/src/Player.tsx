@@ -5,6 +5,7 @@ import Video, { VideoRef } from 'react-native-video';
 import { LinearGradient } from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { localData } from './Default';
+import { last } from './Home/Home';
 
 interface RouteParams {
 	data: any;
@@ -211,6 +212,7 @@ const PlayerScreen = () => {
 						setNewValueEpisode(newValueEpisode + 1);
 					else if (selectedButton == 4)
 					{
+						last.selectedAnime = 2;
 						navigation.reset({
 							index: 1,
 							routes: [
@@ -260,6 +262,7 @@ const PlayerScreen = () => {
 			}
 			else if (keycode == remote.return)
 			{
+				last.selectedAnime = 2;
 				navigation.reset({
 					index: 1,
 					routes: [

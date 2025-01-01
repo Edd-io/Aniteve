@@ -15,8 +15,29 @@ const remoteControl = ({navigation, anime, listUrlEpisodes, logo, resumeData, al
 	setEpsFocused, epsFocused, setLeftPartFocused, leftPartFocused, setShowAvailableSeasons,
 	showAvailableSeasons, setOnSelectedSeasons, onSelectedSeasons, listSeasons, pageSelected,
 	setPageSelected, pageSelectedSeasons, setPageSelectedSeasons, leftButtonSelected,
-	setLeftButtonSelected, idSelectedSeason, setIdSelectedSeason, setListSeasons}: any) => {
-	
+	setLeftButtonSelected, idSelectedSeason, setIdSelectedSeason, setListSeasons, setPopupInfo, popupInfo}: any) => {
+
+	function handleKeyPress(data: any)
+	{
+		const keycode = data.keycode;
+
+		if (data.screen !== 'Anime')
+			return ;
+		if (keycode == remote.up && loadedImg >= imageWhoNeedToLoaded && !popupInfo)
+			remoteUpButton();
+		else if (keycode == remote.down && loadedImg >= imageWhoNeedToLoaded && !popupInfo)
+			remoteDownButton();
+		else if (keycode == remote.left && loadedImg >= imageWhoNeedToLoaded && !popupInfo)
+			remoteLeftButton();
+		else if (keycode == remote.right && loadedImg >= imageWhoNeedToLoaded && !popupInfo)
+			remoteRightButton();
+		else if (keycode == remote.return)
+			remoteReturnButton();
+		else if (keycode == remote.confirm && loadedImg >= imageWhoNeedToLoaded && !popupInfo)
+			remoteConfirmButton();
+		setNeedRefresh(!needRefresh)
+	}
+
 	function remoteUpButton()
 	{
 		if (!leftPartFocused)
@@ -100,7 +121,9 @@ const remoteControl = ({navigation, anime, listUrlEpisodes, logo, resumeData, al
 
 	function remoteReturnButton()
 	{
-		if (leftPartFocused)
+		if (popupInfo)
+			setPopupInfo(false);
+		else if (leftPartFocused)
 			navigation.goBack();
 		else
 			setLeftPartFocused(true);
@@ -157,13 +180,12 @@ const remoteControl = ({navigation, anime, listUrlEpisodes, logo, resumeData, al
 				setLeftPartFocused(false);
 			}
 			else if (leftButtonSelected == 2)
-				navigation.goBack();
+				setPopupInfo(true);
 		}
 		else
 		{
 			if (!showAvailableSeasons)
 			{
-				console.log('go to episode', (pageSelected - 1) * 12 + epsFocused, 'season:', allSeasons[idSelectedSeason]);
 				navigation.navigate('Player', {data: {
 					season: allSeasons,
 					episode: (pageSelected - 1) * 12 + epsFocused,
@@ -182,27 +204,6 @@ const remoteControl = ({navigation, anime, listUrlEpisodes, logo, resumeData, al
 				setEpsFocused(1);
 			}
 		}
-	}
-
-	function handleKeyPress(data: any)
-	{
-		const keycode = data.keycode;
-
-		if (data.screen !== 'Anime')
-			return ;
-		if (keycode == remote.up && loadedImg == imageWhoNeedToLoaded)
-			remoteUpButton();
-		else if (keycode == remote.down && loadedImg == imageWhoNeedToLoaded)
-			remoteDownButton();
-		else if (keycode == remote.left && loadedImg == imageWhoNeedToLoaded)
-			remoteLeftButton();
-		else if (keycode == remote.right && loadedImg == imageWhoNeedToLoaded)
-			remoteRightButton();
-		else if (keycode == remote.return)
-			remoteReturnButton();
-		else if (keycode == remote.confirm && loadedImg == imageWhoNeedToLoaded)
-			remoteConfirmButton();
-		setNeedRefresh(!needRefresh)
 	}
 
 	DeviceEventEmitter.removeAllListeners('remoteKeyPress');
