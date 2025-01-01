@@ -1,8 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, DeviceEventEmitter} from 'react-native';
-
-const urlApiGetAllProgress = 'http://192.168.1.172:8080/api/get_all_progress';
+import { localData } from '../Default';
 
 const remote = {
 	'left': 21,
@@ -47,7 +46,7 @@ const ElemList = ({index, selectedLine, data}: any) => {
 						<Text style={[styles.underTitle, {color: '#5de383'}]}>{info}</Text>
 					}
 				</Text>
-				<View style={{width: '100%', height: 5, backgroundColor: 'rgba(255, 255, 255, 0.5)', borderRadius: 5, marginVertical: 5}}>
+				<View style={{width: '100%', height: 5, backgroundColor: 'rgba(255, 255, 255, 0.5)', borderRadius: 5, marginVertical: 5, overflow: 'hidden'}}>
 					<View style={{width: `${data.progress}%`, height: '100%', backgroundColor: 'rgba(255, 255, 255, 1)', borderRadius: 5}}></View>
 				</View>
 			</View>
@@ -60,7 +59,7 @@ const ResumePopup = ({setPopupResume, navigation}: any) => {
 	const [progressList, setProgressList] = useState<any>([]);
 
 	useEffect(() => {
-		fetch(urlApiGetAllProgress)
+		fetch(localData.addr + '/api/get_all_progress')
 		.then((response) => {
 			return (response.json());
 		})

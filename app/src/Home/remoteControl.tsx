@@ -22,7 +22,7 @@ let		lastRangeEnd = 12;
 
 const remoteControl = ({selectedAnimeId, setSelectedAnimeId, selectedAnimeVisual, searchInput,
 	setSelectedAnimeVisual, anime_list, setAnimeList, range, setSearchInput, refTextInput, 
-	flatListRef, navigation, arrIdAnime, last, setPopupResume}: any) => {
+	flatListRef, navigation, arrIdAnime, last, setPopupResume, setPopupSettings}: any) => {
 
 	useEffect(() => {
 		const unsubscribe = navigation.addListener('focus', () => {
@@ -73,7 +73,7 @@ const remoteControl = ({selectedAnimeId, setSelectedAnimeId, selectedAnimeVisual
 		}
 		else if (pos % 4 != 0)
 		{
-			setSelectedAnimeId(arrIdAnime[pos - 1])
+			setSelectedAnimeId(arrIdAnime.anime[pos - 1])
 			setSelectedAnimeVisual(selectedAnimeVisual - 1);
 		}
 	}
@@ -85,9 +85,9 @@ const remoteControl = ({selectedAnimeId, setSelectedAnimeId, selectedAnimeVisual
 			setSelectedAnimeId(selectedAnimeId + 1 > 1 ? 1 : selectedAnimeId + 1);
 			setSelectedAnimeVisual(selectedAnimeVisual + 1 > 1 ? 1 : selectedAnimeVisual + 1);
 		}
-		else if (pos % 4 != 3 && arrIdAnime[pos + 1])
+		else if (pos % 4 != 3 && arrIdAnime.anime[pos + 1])
 		{
-			setSelectedAnimeId(arrIdAnime[pos + 1])
+			setSelectedAnimeId(arrIdAnime.anime[pos + 1])
 			setSelectedAnimeVisual(selectedAnimeVisual + 1);
 		}
 	}
@@ -106,7 +106,7 @@ const remoteControl = ({selectedAnimeId, setSelectedAnimeId, selectedAnimeVisual
 			}
 			if (pos >= 4)
 			{
-				setSelectedAnimeId(arrIdAnime[pos - 4])
+				setSelectedAnimeId(arrIdAnime.anime[pos - 4])
 				setSelectedAnimeVisual(selectedAnimeVisual - 4);
 			}
 		}
@@ -121,7 +121,7 @@ const remoteControl = ({selectedAnimeId, setSelectedAnimeId, selectedAnimeVisual
 	{
 		if (selectedAnimeId === -1 || selectedAnimeId === 0 || selectedAnimeId === 1)
 		{
-			setSelectedAnimeId(arrIdAnime[0])
+			setSelectedAnimeId(arrIdAnime.anime[0])
 			setSelectedAnimeVisual(2);
 		}
 		else
@@ -136,7 +136,7 @@ const remoteControl = ({selectedAnimeId, setSelectedAnimeId, selectedAnimeVisual
 			}
 			if (pos < anime_list.search.length - 4)
 			{
-				setSelectedAnimeId(arrIdAnime[pos + 4])
+				setSelectedAnimeId(arrIdAnime.anime[pos + 4])
 				setSelectedAnimeVisual(selectedAnimeVisual + 4);
 			}
 		}
@@ -160,23 +160,21 @@ const remoteControl = ({selectedAnimeId, setSelectedAnimeId, selectedAnimeVisual
 		else if (selectedAnimeId === 0)
 			setPopupResume(true);
 		else if (selectedAnimeId === 1)
-		{
-		}
+			setPopupSettings(true);
 	}
 
 	function remoteReturnButton(pos: number)
 	{
 		if (selectedAnimeId > 2 || searchInput.length > 0)
 		{
-			setSelectedAnimeId(2);
-			setSelectedAnimeVisual(2);
 			refTextInput.current?.clear();
 			setSearchInput('');
 			range.start = 0;
 			range.end = 12;
 			setAnimeList(anime_list.search.slice(range.start, range.end));
+			setSelectedAnimeId(2);
+			setSelectedAnimeVisual(2);
 			flatListRef.current?.scrollToOffset({ animated: false, offset: 0 });
-
 		}
 		else if (selectedAnimeId === 0 || selectedAnimeId === 1)
 		{

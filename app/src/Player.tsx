@@ -4,8 +4,7 @@ import { useRoute, RouteProp } from '@react-navigation/native';
 import Video, { VideoRef } from 'react-native-video';
 import { LinearGradient } from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
-
-const urlApiUpdateProgress = "http://192.168.1.172:8080/api/update_progress"
+import { localData } from './Default';
 
 interface RouteParams {
 	data: any;
@@ -73,7 +72,7 @@ const PlayerScreen = () => {
 		setTimeout(() => {
 			if (pourcent && !hasError && !isPaused)
 			{
-				fetch(urlApiUpdateProgress, {
+				fetch(localData.addr + "/api/update_progress", {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json',
