@@ -11,7 +11,7 @@ const Stack = createStackNavigator();
 
 const localData = {
 	addr: null as string | null,
-	timeSkip: null as number | null,
+	timeSkip: 0 as number,
 }
 
 const Default = () => {

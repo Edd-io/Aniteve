@@ -141,7 +141,7 @@ const AnimeScreen = () => {
 			headers: {
 				'Content-Type': 'application/json',
 			},
-			body: JSON.stringify({url: anime.url}),
+			body: JSON.stringify({url: anime.url, serverUrl: localData.addr}),
 		}).then((response) => {
 			return response.json();
 		}).then((data) => {
@@ -183,10 +183,11 @@ const AnimeScreen = () => {
 			headers: {
 				'Content-Type': 'application/json',
 			}, 
-			body: JSON.stringify({url: anime.url, season: allSeasons[idSelectedSeason]}),
+			body: JSON.stringify({url: anime.url, season: allSeasons[idSelectedSeason], serverUrl: localData.addr}),
 		}).then((response) => {
 			return response.json();
 		}).then((data) => {
+			console.log(data);
 			nbEpisodes = data.number;
 			listUrlEpisodes = data.episodes;
 			if (nbEpisodes >= 12)

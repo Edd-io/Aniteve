@@ -19,7 +19,6 @@ const remote = {
 	'confirm': 23,
 }
 
-const	timeSkip = 15;
 let		timeoutOverlay: any = null;
 
 function capitalize(val: string)
@@ -128,10 +127,19 @@ const PlayerScreen = () => {
 		if (source.length == 0)
 			return ;
 		setHasError(false);
-		fetch(source[sourceSelected])
+		fetch(source[sourceSelected], {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({
+				serverUrl: localData.addr,
+			})
+		})
 		.then((response) => {
 			try {
 				response.json().then((dataFetch) => {
+					console.log(dataFetch);
 					setTimeToResume(currentTime);
 					if (dataFetch.src.includes('.mp4'))
 						setTypeSource('video/mp4');
@@ -232,23 +240,23 @@ const PlayerScreen = () => {
 		{
 			if (keycode == remote.left && videoRef.current)
 			{
-				videoRef.current.seek(currentTime - timeSkip);
-				if (currentTime - timeSkip < 0)
+				videoRef.current.seek(currentTime - localData.timeSkip);
+				if (currentTime - localData.timeSkip < 0)
 					setCurrentTime(0);
-				else if (currentTime - timeSkip > totalTime)
+				else if (currentTime - localData.timeSkip > totalTime)
 					setCurrentTime(totalTime);
 				else
-					setCurrentTime(currentTime - timeSkip);
+					setCurrentTime(currentTime - localData.timeSkip);
 			}
 			else if (keycode == remote.right && videoRef.current)
 			{
-				videoRef.current.seek(currentTime + timeSkip);
-				if (currentTime + timeSkip < 0)
+				videoRef.current.seek(currentTime + localData.timeSkip);
+				if (currentTime + localData.timeSkip < 0)
 					setCurrentTime(0);
-				else if (currentTime + timeSkip > totalTime)
+				else if (currentTime + localData.timeSkip > totalTime)
 					setCurrentTime(totalTime);
 				else
-					setCurrentTime(currentTime + timeSkip);
+					setCurrentTime(currentTime + localData.timeSkip);
 			}
 			else if (keycode == remote.return)
 			{

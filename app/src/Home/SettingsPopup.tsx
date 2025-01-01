@@ -2,6 +2,7 @@ import React, {useEffect, useState} from "react";
 import { View, Text, StyleSheet, DeviceEventEmitter, TextInput, NativeModules, Keyboard, Alert} from "react-native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import RNRestart from 'react-native-restart';
+import { localData } from "../Default";
 
 const remote = {
 	'left': 21,
@@ -60,6 +61,7 @@ const SettingsPopup = ({setSettingPopup}: any) => {
 				const nbSec = parseInt(valueTimeSkip);
 				AsyncStorage.setItem('timeSkip', nbSec.toString());
 				setValueTimeSkip(nbSec.toString());
+				localData.timeSkip = nbSec;
 			}
 		});
 		return () => {

@@ -3,8 +3,8 @@ import requests
 import subprocess
 import json
 
-SERV_URL_SRCFILE	= 'http://192.168.1.172:8080' + '/api/srcFile?'
-SERV_URL_VIDEO		= 'http://192.168.1.172:8080' + '/api/video?'
+SERV_URL_SRCFILE	= '/api/srcFile?'
+SERV_URL_VIDEO		= '/api/video?'
 AVAILABLE_PLAYER	= ['sibnet', 'oneupload', 'sendvid', 'vidmoly']
 JS_FUNCTION			= '''
 	function parseFileEpisode()
@@ -117,7 +117,8 @@ class AnimeSama:
 		episodes = json.loads(process.stdout)
 		for i, episode in enumerate(episodes):
 			for j, link in enumerate(episodes[episode]):
-				episodes[episode][j] = episodes[episode][j].replace('https://', SERV_URL_SRCFILE)
+				episodes[episode][j] = episodes[episode][j].replace('https://', anime['serverUrl'] + SERV_URL_SRCFILE)
+				episodes[episode][j] = "".join(episodes[episode][j].split())
 			k = 0
 			while k < len(episodes[episode]):
 				find = False
@@ -135,17 +136,17 @@ class AnimeSama:
 		data['number'] = len(episodes)
 		return (data)
 
-	def get_source_file(self, episode):
+	def get_source_file(self, episode, serverUrl):
 		if (episode.find('sibnet') != -1):
-			return (self.__get_source_file_from_sibnet(episode))
+			return (self.__get_source_file_from_sibnet(episode, serverUrl))
 		elif (episode.find('oneupload') != -1):
-			return (self.__get_source_file_from_oneupload(episode))
+			return (self.__get_source_file_from_oneupload(episode, serverUrl))
 		elif (episode.find('sendvid') != -1):
-			return (self.__get_source_file_from_sendvid(episode))
+			return (self.__get_source_file_from_sendvid(episode, serverUrl))
 		else:
-			return (self.__get_source_file_from_vidmoly(episode))
+			return (self.__get_source_file_from_vidmoly(episode, serverUrl))
 	
-	def __get_source_file_from_sibnet(self, episode):
+	def __get_source_file_from_sibnet(self, episode, serverUrl):
 		headers = {
 			'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
 		}
@@ -162,10 +163,10 @@ class AnimeSama:
 			pos = endPos - 4
 			while (line[pos] != '"' and line[pos] != "'"):
 				pos -= 1
-			url = SERV_URL_VIDEO + 'video.sibnet.ru' + line[pos + 1:endPos] + '|' + episode
+			url = serverUrl + SERV_URL_VIDEO + 'video.sibnet.ru' + line[pos + 1:endPos] + '|' + episode
 		return (url)
 	
-	def __get_source_file_from_vidmoly(self, episode):
+	def __get_source_file_from_vidmoly(self, episode, serverUrl):
 		headers = {
 			'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
 		}
@@ -178,10 +179,10 @@ class AnimeSama:
 			endPos = line.find('.m3u8')
 			if (pos == -1 or line.find('file:') == -1 or endPos == -1):
 				continue
-			url = SERV_URL_VIDEO + line[pos + 8:endPos + 5]
+			url = serverUrl + SERV_URL_VIDEO + line[pos + 8:endPos + 5]
 		return (url)
 	
-	def __get_source_file_from_oneupload(self, episode):
+	def __get_source_file_from_oneupload(self, episode, serverUrl):
 		response	= requests.get(episode)
 		response	= response.text.split('\n')
 		url			= None
@@ -195,10 +196,10 @@ class AnimeSama:
 				continue
 			while (line[posEnd] != '"' and line[posEnd] != "'"):
 				posEnd += 1
-			url = SERV_URL_VIDEO + line[pos + 8:posEnd]
+			url = serverUrl + SERV_URL_VIDEO + line[pos + 8:posEnd]
 		return (url)
 
-	def __get_source_file_from_sendvid(self, episode):
+	def __get_source_file_from_sendvid(self, episode, serverUrl):
 		response	= requests.get(episode)
 		response	= response.text.split('\n')
 		url			= None
@@ -212,5 +213,5 @@ class AnimeSama:
 				continue
 			while (line[posEnd] != '"' and line[posEnd] != "'"):
 				posEnd += 1
-			url = SERV_URL_VIDEO + line[pos + 8:posEnd]
+			url = serverUrl + SERV_URL_VIDEO + line[pos + 8:posEnd]
 		return (url)

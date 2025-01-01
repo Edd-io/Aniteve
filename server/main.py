@@ -44,10 +44,11 @@ def get_anime_season():
 
 @app.route('/api/get_anime_episodes', methods=['POST'])
 def get_anime_episodes():
-	need_keys = ['url']
+	need_keys = ['url', 'serverUrl']
 
 	try:
 		anime = request.get_json()
+		print(anime)
 		for key in need_keys:
 			if key not in anime:
 				return ({'error': 'Missing key ' + key})
@@ -56,14 +57,19 @@ def get_anime_episodes():
 	except Exception as e:
 		return ({'error': str(e)})
 	
-@app.route('/api/srcFile')
-def proxy():
+@app.route('/api/srcFile', methods=['POST'])
+def srcFile():
 	url = 'https://' + request.url.split('?', 1)[1]
+	need_keys = ['serverUrl']
 
 	try:
+		anime = request.get_json()
 		if (url == 'https://'):
 			return {'error': 'Missing url'}
-		return ({'src': site.get_source_file(url)})
+		for key in need_keys:
+			if key not in anime:
+				return ({'error': 'Missing key ' + key})
+		return ({'src': site.get_source_file(url, anime['serverUrl'])})
 	except Exception as e:
 		return ({'error': str(e)})
 
