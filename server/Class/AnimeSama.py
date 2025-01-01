@@ -105,10 +105,11 @@ class AnimeSama:
 	
 	def get_anime_episodes(self, anime):
 		response = requests.get(anime['url'] + '/' + anime['season'] + '/episodes.js')
-		if (response.sta	us_code != 200):
-			return ({'		pisodes': {}, 'number': 0})
-		data = response.	ext
-		data += '\n' + JS_FUNCTION					process = subprocess.run(
+		if (response.status_code != 200):
+			return ({'episodes': {}, 'number': 0})
+		data = response.text
+		data += '\n' + JS_FUNCTION
+		process = subprocess.run(
 			['node', '-e', data],
 			capture_output=True,
 			text=True
