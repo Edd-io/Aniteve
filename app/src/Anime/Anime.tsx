@@ -74,9 +74,9 @@ const get_data_from_tmdb = async (id: string, isMovie: boolean) => {
 	
 	let animeData = allAnimeData[allDiff.indexOf(Math.min(...allDiff))];
 	let idAnime: number = animeData?.id;
-
+	console.log(animeData);
 	dataAnime.title = animeData.title ? animeData.title : animeData.name;
-	dataAnime.firstAirDate = animeData.first_air_date;
+	dataAnime.firstAirDate = animeData.first_air_date ? animeData.first_air_date : animeData.release_date;
 	dataAnime.name = animeData.name;
 	dataAnime.originalName = animeData.original_name;
 	dataAnime.overview = animeData.overview;

@@ -1,5 +1,6 @@
 import React from 'react';
 import {DeviceEventEmitter, Alert} from 'react-native';
+import { localData } from '../Default';
 
 const remote = {
 	'left': 21,
@@ -151,7 +152,7 @@ const remoteControl = ({navigation, anime, listUrlEpisodes, logo, resumeData, al
 									selectedSeasons: allSeasons.indexOf(resumeData.season),
 									url: anime.url,
 									title: anime.title,
-									listUrlEpisodes: listUrlEpisodes,
+									listUrlEpisodes: {},
 									logo: logo,
 									back: anime,
 								}});
@@ -167,7 +168,7 @@ const remoteControl = ({navigation, anime, listUrlEpisodes, logo, resumeData, al
 						selectedSeasons: allSeasons.indexOf(resumeData.season),
 						url: anime.url,
 						title: anime.title,
-						listUrlEpisodes: listUrlEpisodes,
+						listUrlEpisodes: {},
 						logo: logo,
 						back: anime,
 						resumeTime: resumeData.progress,

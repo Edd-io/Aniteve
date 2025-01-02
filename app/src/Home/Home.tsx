@@ -59,7 +59,7 @@ const HomeScreen = () =>
 			keyboarListener[0].remove();
 			keyboarListener[1].remove();
 		};
-	}, []);
+	}, [popupSettings]);
 
 	const renderItem = useCallback(({ item }: any) => (
 		<AnimeItem item={item} selectedAnimeId={selectedAnimeId} />

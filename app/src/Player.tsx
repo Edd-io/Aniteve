@@ -41,6 +41,7 @@ function capitalize(val: string)
 const PlayerScreen = () => {
 	const route = useRoute<RouteProp<{ params: RouteParams }, 'params'>>();
 	const { data } = route.params;
+	const [stateData, setStateData] = useState<any>(data);
 	const [urlVideo, setUrlVideo] = useState<string>('');
 	const videoRef = React.useRef<VideoRef>(null);
 	const [currentTime, setCurrentTime] = useState<number>(0);
@@ -70,7 +71,7 @@ const PlayerScreen = () => {
 		const	pourcent = (currentTime / totalTime) * 100;
 
 		setTimeout(() => {
-			if (pourcent && !hasError && !isPaused)
+			if (pourcent && !hasError && !isPaused && stateData.listUrlEpisodes !== undefined)
 			{
 				fetch(localData.addr + "/api/update_progress", {
 					method: 'POST',
@@ -78,16 +79,15 @@ const PlayerScreen = () => {
 						'Content-Type': 'application/json',
 					},
 					body: JSON.stringify({
-						id: data.back.id,
-						episode: data.episode,
-						totalEpisode: Object.keys(data.listUrlEpisodes).length,
-						seasonId: data.selectedSeasons,
-						allSeasons: data.season,
+						id: stateData.back.id,
+						episode: stateData.episode,
+						totalEpisode: Object.keys(stateData.listUrlEpisodes).length,
+						seasonId: stateData.selectedSeasons,
+						allSeasons: stateData.season,
 						progress: pourcent,
 					})
 				}).then((response) => {return response.json()})
-				.then((data) => {
-					console.log(data);
+				.then((stateData) => {
 					setSendRequest(!sendRequest);
 				})
 				.catch((err) => {
@@ -103,7 +103,7 @@ const PlayerScreen = () => {
 	useEffect(() => {
 		if (newValueEpisode == 0)
 		{
-			setNewValueEpisode(data.episode);
+			setNewValueEpisode(stateData.episode);
 			return ;
 		}
 		setTotalTime(0);
@@ -120,11 +120,31 @@ const PlayerScreen = () => {
 		setTimeToResume(0);
 		setHasError(false);
 		setNeedRefresh(!needRefresh);
-		setSource(data.listUrlEpisodes['eps' + newValueEpisode]);
+		setSource(stateData.listUrlEpisodes['eps' + newValueEpisode]);
 		handleKeyPress({keycode: 0, screen: 'Player'});
-	}, [newValueEpisode]);
+	}, [newValueEpisode, stateData]);
 
 	useEffect(() => {
+		if (Object.keys(stateData.listUrlEpisodes).length === 0)
+		{
+			fetch(localData.addr + '/api/get_anime_episodes', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				}, 
+				body: JSON.stringify({url: stateData.url, season: stateData.season[stateData.selectedSeasons], serverUrl: localData.addr}),
+			}).then((response) => {
+				return response.json();
+			}).then((dataFetch) => {
+				const newData = { ...stateData, listUrlEpisodes: dataFetch.episodes };
+				console.log('newData: ', newData);
+				setStateData(newData);
+				
+			}).catch((error) => {
+				console.warn(error);
+			});
+			return ;
+		}
 		if (source.length == 0)
 			return ;
 		setHasError(false);
@@ -140,7 +160,6 @@ const PlayerScreen = () => {
 		.then((response) => {
 			try {
 				response.json().then((dataFetch) => {
-					console.log(dataFetch);
 					setTimeToResume(currentTime);
 					if (dataFetch.src.includes('.mp4'))
 						setTypeSource('video/mp4');
@@ -208,7 +227,7 @@ const PlayerScreen = () => {
 						setShowSource(true);
 					else if (selectedButton == 2 && newValueEpisode > 1)
 						setNewValueEpisode(newValueEpisode - 1);
-					else if (selectedButton == 3 && newValueEpisode < Object.keys(data.listUrlEpisodes).length)
+					else if (selectedButton == 3 && newValueEpisode < Object.keys(stateData.listUrlEpisodes).length)
 						setNewValueEpisode(newValueEpisode + 1);
 					else if (selectedButton == 4)
 					{
@@ -217,7 +236,7 @@ const PlayerScreen = () => {
 							index: 1,
 							routes: [
 								{ name: 'Home' as never },
-								{ name: 'Anime' as never, params: { anime: data.back } },
+								{ name: 'Anime' as never, params: { anime: stateData.back } },
 							],
 						});
 					}
@@ -267,7 +286,7 @@ const PlayerScreen = () => {
 					index: 1,
 					routes: [
 						{ name: 'Home' as never },
-						{ name: 'Anime' as never, params: { anime: data.back } },
+						{ name: 'Anime' as never, params: { anime: stateData.back } },
 					],
 				});
 			}
@@ -332,19 +351,19 @@ const PlayerScreen = () => {
 				onLoad={(dataLoad) => {
 					setTotalTime(dataLoad.duration);
 					setOnLoading(false);
-					if (data.resumeTime)
-						videoRef.current?.seek((data.resumeTime / 100) * dataLoad.duration);
+					if (stateData.resumeTime)
+						videoRef.current?.seek((stateData.resumeTime / 100) * dataLoad.duration);
 				}}
-				onProgress={(data) => {
-					setCurrentTime(data.currentTime);
+				onProgress={(stateData) => {
+					setCurrentTime(stateData.currentTime);
 				}}
-				onBuffer={(data) => {
+				onBuffer={(stateData) => {
 					if (hasError)
 						return ;
-					setOnLoading(data.isBuffering);
+					setOnLoading(stateData.isBuffering);
 				}}
-				onError={(data) => {
-					console.warn(data);
+				onError={(stateData) => {
+					console.warn(stateData);
 					setHasError(true);
 				}}
 				paused={isPaused}
@@ -353,11 +372,11 @@ const PlayerScreen = () => {
 				<View style={[styles.overlay, {zIndex: 3}]}>
 					<View style={styles.loadingBackground}></View>
 					<View style={styles.logoContainer}>
-						{data.logo &&
-						<Image source={{uri: data.logo}} style={styles.logo} resizeMode='contain'/>
+						{stateData.logo &&
+						<Image source={{uri: stateData.logo}} style={styles.logo} resizeMode='contain'/>
 						}
 					</View>
-					<Text style={[styles.text, {textAlign: 'right', marginTop: 20, marginRight: 20}]}>{capitalize(String(data.season).split('/')[0])} - Episode {newValueEpisode}</Text>
+					<Text style={[styles.text, {textAlign: 'right', marginTop: 20, marginRight: 20}]}>{capitalize(String(stateData.season).split('/')[0])} - Episode {newValueEpisode}</Text>
 					<Text style={[styles.text, {textAlign: 'right', marginRight: 20, color: "#ffffff90"}]}>{secondsToHms(currentTime)} / {secondsToHms(totalTime)}</Text>
 					{
 						!hasError ?
@@ -370,7 +389,7 @@ const PlayerScreen = () => {
 							<Text style={[styles.text, {padding: 5, marginLeft: 20 , color: !hasError ? "#fff" : "#555555"},selectedButton == 0 ? styles.selected : null]}>Reprendre</Text>
 							<Text style={[styles.text, {padding: 5, marginLeft: 20 ,marginTop: 5},selectedButton == 1 ? styles.selected : null]}>Changer de source</Text>
 							<Text style={[styles.text, {padding: 5, marginLeft: 20 ,marginTop: 5, color: newValueEpisode > 1 ? "#fff" : "#555555"},selectedButton == 2 ? styles.selected : null]}>Episode précédent</Text>
-							<Text style={[styles.text, {padding: 5, marginLeft: 20 ,marginTop: 5, color: newValueEpisode < Object.keys(data.listUrlEpisodes).length ? "#fff" : "#555555"},selectedButton == 3 ? styles.selected : null]}>Episode suivant</Text>
+							<Text style={[styles.text, {padding: 5, marginLeft: 20 ,marginTop: 5, color: newValueEpisode < Object.keys(stateData.listUrlEpisodes).length ? "#fff" : "#555555"},selectedButton == 3 ? styles.selected : null]}>Episode suivant</Text>
 							<Text style={[styles.text, {padding: 5, marginLeft: 20 ,marginTop: 5},selectedButton == 4 ? styles.selected : null]}>Retour au menu</Text>
 						</View>
 						:
@@ -388,8 +407,8 @@ const PlayerScreen = () => {
 				<View style={styles.overlay}>
 					<View style={styles.loadingBackground}></View>
 					<View style={styles.logoContainer}>
-						{data.logo &&
-						<Image source={{uri: data.logo}} style={styles.logo} resizeMode='contain'/>
+						{stateData.logo &&
+						<Image source={{uri: stateData.logo}} style={styles.logo} resizeMode='contain'/>
 						}
 						<ActivityIndicator color="#fff" style={styles.loadingCircle} size={500}/>
 					</View>
@@ -413,8 +432,8 @@ const PlayerScreen = () => {
 					end={{ x: 0, y: 1 }}
 				/>
 				<View style={styles.topOverlay}>
-					<Text style={styles.text}>{capitalize(data.title.length > 50 ? data.title.substring(0, 50) + '...' : data.title)}</Text>
-					<Text style={styles.text}>{capitalize(String(data.season).split('/')[0])} - Episode {newValueEpisode}</Text>
+					<Text style={styles.text}>{capitalize(stateData.title.length > 50 ? stateData.title.substring(0, 50) + '...' : stateData.title)}</Text>
+					<Text style={styles.text}>{capitalize(String(stateData.season[stateData.selectedSeasons]).split('/')[0])} - Episode {newValueEpisode}</Text>
 				</View>
 				<View style={styles.bottomOverlay}>
 					<Text style={styles.text}>{secondsToHms(currentTime)}</Text>

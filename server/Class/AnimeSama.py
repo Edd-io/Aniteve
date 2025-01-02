@@ -1,8 +1,11 @@
 from bs4 import BeautifulSoup
-import requests
+from time import sleep
 import subprocess
+import threading
+import requests
 import json
 
+URL_AS				= 'https://anime-sama.fr/'
 SERV_URL_SRCFILE	= '/api/srcFile?'
 SERV_URL_VIDEO		= '/api/video?'
 AVAILABLE_PLAYER	= ['sibnet', 'oneupload', 'sendvid', 'vidmoly']
@@ -30,11 +33,15 @@ JS_FUNCTION			= '''
 '''
 
 class AnimeSama:
-	url = "https://anime-sama.fr/catalogue/listing_all.php"
+	url = URL_AS + "catalogue/listing_all.php"
+	thread_status_anime = None
+	db = None
 
 	def __init__(self, db):
 		self.db = db
 		self.get_anime_list()
+		thread_status_anime = threading.Thread(target=self.get_anime_status)
+		thread_status_anime.start()
 	
 	def get_anime_list(self):
 		response	= requests.get(self.url)
@@ -52,6 +59,8 @@ class AnimeSama:
 			if alternative_title == '':
 				alternative_title = None
 			url = anime.find('a')['href']
+			if (url[len(url) - 1] == '/'):
+				url = url[:-1]
 			img = anime.find('img')['src']
 			all_anime.append({'title': title, 'alternative_title': alternative_title, 'genre': anime['class'], 'url': url, 'img': img})
 		for i, anime in enumerate(anime_list2):
@@ -63,6 +72,8 @@ class AnimeSama:
 			if alternative_title == '':
 				alternative_title = None
 			url = anime.find('a')['href']
+			if (url[len(url) - 1] == '/'):
+				url = url[:-1]
 			img = anime.find('img')['src']
 			all_anime.append({'title': title, 'alternative_title': alternative_title, 'genre': anime['class'], 'url': url, 'img': img})
 		for anime in all_anime:
@@ -215,3 +226,41 @@ class AnimeSama:
 				posEnd += 1
 			url = serverUrl + SERV_URL_VIDEO + line[pos + 8:posEnd]
 		return (url)
+	
+	def get_anime_status(self):
+		while (1):
+			try:
+				sleep(5)
+				response = requests.get(URL_AS)
+				soup = BeautifulSoup(response.text, 'html.parser')
+				list_anime = soup.find('div', id='containerAjoutsAnimes')
+				list_title = list_anime.find_all('h1')
+				list_url = list_anime.find_all('a')
+				list_season = []
+				list_redirect = []
+				
+				for i, title in enumerate(list_title):
+					list_title[i] = title.text
+				for i, url in enumerate(list_url):
+					j = len(url['href']) - 1
+					nb_slash = 0
+					while (url['href'][j - 1]):
+						if (url['href'][j - 1] == '/'):
+							nb_slash += 1
+						if (nb_slash == 2):
+							list_season.append(url['href'][j:-1])
+							list_redirect.append(url['href'][:j - 1])
+							break
+						j -= 1
+					if (nb_slash != 2):
+						list_url.pop(i)		
+
+				data = []
+				for i, title in enumerate(list_title):
+					data.append({'title': title, 'season': list_season[i], 'url': list_redirect[i]})
+				self.db.update_anime_status(data)
+				sleep(1800)
+			except Exception as e:
+				pass
+		self.thread_status_anime = None
+		return
