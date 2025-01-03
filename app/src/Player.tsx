@@ -52,7 +52,9 @@ const PlayerScreen = () => {
 	const [isPaused, setIsPaused] = useState<boolean>(false);
 	const [onLoading, setOnLoading] = useState<boolean>(false);
 	const [hideOverlay, setHideOverlay] = useState<boolean>(false);
+	const [resolution, setResolution] = useState<string>('');
 	const [selectedButton, setSelectedButton] = useState<number>(0); // 0: resume, 1: change source, 2: previous episode, 3: next episode, 4:return to menu
+	const [episodeFinished, setEpisodeFinished] = useState<boolean>(false);
 
 	const [source, setSource] = useState<string[]>([]);
 	const [showSource, setShowSource] = useState<boolean>(false);
@@ -85,6 +87,7 @@ const PlayerScreen = () => {
 						seasonId: stateData.selectedSeasons,
 						allSeasons: stateData.season,
 						progress: pourcent,
+						poster: stateData.poster,
 					})
 				}).then((response) => {return response.json()})
 				.then((stateData) => {
@@ -97,7 +100,7 @@ const PlayerScreen = () => {
 			}
 			else
 				setSendRequest(!sendRequest);
-		}, 5000);
+		}, 10000);
 	}, [sendRequest]);
 
 	useEffect(() => {
@@ -118,6 +121,7 @@ const PlayerScreen = () => {
 		setSourceSelectedButton(0);
 		setUrlVideo("");
 		setTimeToResume(0);
+		setEpisodeFinished(false);
 		setHasError(false);
 		setNeedRefresh(!needRefresh);
 		setSource(stateData.listUrlEpisodes['eps' + newValueEpisode]);
@@ -175,7 +179,7 @@ const PlayerScreen = () => {
 				setUrlVideo("");
 			}
 		}).catch((error) => {
-			console.error(error);
+			setHasError(true);
 		});
 	}, [source, sourceSelected]);
 
@@ -202,17 +206,17 @@ const PlayerScreen = () => {
 			return ;
 		if (timeoutOverlay)
 			clearTimeout(timeoutOverlay);
-		if (!isPaused && !hasError)
+		if (!isPaused && !hasError && !episodeFinished)
 		{
 			setHideOverlay(false);
 			timeoutOverlay = setTimeout(() => {
 				setHideOverlay(true);
 			}, 5000);
 		}
-		if (keycode == remote.confirm && videoRef.current)	
+		if (keycode == remote.confirm)	
 		{
 			setHideOverlay(true);
-			if (!isPaused && !hasError)
+			if (!isPaused && !hasError && videoRef.current && !episodeFinished)
 			{
 				setIsPaused(!isPaused);
 				setSelectedButton(0);
@@ -222,8 +226,17 @@ const PlayerScreen = () => {
 				if (!showSource)
 				{
 					if (selectedButton == 0 && !hasError)
-						setIsPaused(!isPaused);
-					else if (selectedButton == 1)
+					{
+						if (episodeFinished)
+						{
+							videoRef.current?.seek(0);
+							setEpisodeFinished(false);
+							setIsPaused(false);
+						}
+						else
+							setIsPaused(!isPaused);
+					}
+					else if (selectedButton == 1 && !episodeFinished)
 						setShowSource(true);
 					else if (selectedButton == 2 && newValueEpisode > 1)
 						setNewValueEpisode(newValueEpisode - 1);
@@ -257,7 +270,7 @@ const PlayerScreen = () => {
 				}
 			}
 		}
-		else if (!isPaused && !hasError)
+		else if (!isPaused && !hasError && !episodeFinished)
 		{
 			if (keycode == remote.left && videoRef.current)
 			{
@@ -353,6 +366,7 @@ const PlayerScreen = () => {
 					setOnLoading(false);
 					if (stateData.resumeTime)
 						videoRef.current?.seek((stateData.resumeTime / 100) * dataLoad.duration);
+					setResolution(dataLoad.naturalSize.width + 'x' + dataLoad.naturalSize.height);
 				}}
 				onProgress={(stateData) => {
 					setCurrentTime(stateData.currentTime);
@@ -367,8 +381,12 @@ const PlayerScreen = () => {
 					setHasError(true);
 				}}
 				paused={isPaused}
+				onEnd={() => {
+					setEpisodeFinished(true);
+					setHideOverlay(true);
+				}}
 			/>}
-			{(isPaused || hasError) &&
+			{(isPaused || hasError || episodeFinished) &&
 				<View style={[styles.overlay, {zIndex: 3}]}>
 					<View style={styles.loadingBackground}></View>
 					<View style={styles.logoContainer}>
@@ -378,16 +396,21 @@ const PlayerScreen = () => {
 					</View>
 					<Text style={[styles.text, {textAlign: 'right', marginTop: 20, marginRight: 20}]}>{capitalize(String(stateData.season).split('/')[0])} - Episode {newValueEpisode}</Text>
 					<Text style={[styles.text, {textAlign: 'right', marginRight: 20, color: "#ffffff90"}]}>{secondsToHms(currentTime)} / {secondsToHms(totalTime)}</Text>
-					{
-						!hasError ?
-						<Text style={[styles.text, {textAlign: 'right', marginRight: 20, color: "#ffffff90"}]}>En pause</Text>
-						:
-						<Text style={[styles.text, {textAlign: 'center', position: 'absolute', top: 75, width: '100%', color: "#ff2222"}]}>Erreur lors du chargement de la vidéo{'\n'}Veuillez changer de source</Text>
+					{!hasError ?
+					<Text style={[styles.text, {textAlign: 'right', marginRight: 20, color: "#ffffff90"}]}>En pause</Text>
+					:
+					videoRef.current ?
+					<Text style={[styles.text, {textAlign: 'center', position: 'absolute', top: 75, width: '100%', color: "#ff2222"}]}>Erreur lors du chargement de la vidéo{'\n'}Veuillez changer de source</Text>
+					:
+					<Text style={[styles.text, {textAlign: 'center', position: 'absolute', top: 75, width: '100%', color: "#ff2222"}]}>Serveur introuvable, veuillez vérifier votre connexion internet</Text>
+					}
+					{episodeFinished &&
+					<Text style={[styles.text, {textAlign: 'center', position: 'absolute', top: 75, width: '100%', color: "#ffffff"}]}>Episode terminé</Text>
 					}
 					{!showSource ?
 						<View style={{position: 'absolute', top: '32%'}}>
-							<Text style={[styles.text, {padding: 5, marginLeft: 20 , color: !hasError ? "#fff" : "#555555"},selectedButton == 0 ? styles.selected : null]}>Reprendre</Text>
-							<Text style={[styles.text, {padding: 5, marginLeft: 20 ,marginTop: 5},selectedButton == 1 ? styles.selected : null]}>Changer de source</Text>
+							<Text style={[styles.text, {padding: 5, marginLeft: 20 , color: !hasError ? "#fff" : "#555555"},selectedButton == 0 ? styles.selected : null]}>{episodeFinished ? "Recommencer" : "Reprendre"}</Text>
+							<Text style={[styles.text, {padding: 5, marginLeft: 20 ,marginTop: 5, color: !episodeFinished ? "#fff" : "#555555"},selectedButton == 1 ? styles.selected : null]}>Changer de source</Text>
 							<Text style={[styles.text, {padding: 5, marginLeft: 20 ,marginTop: 5, color: newValueEpisode > 1 ? "#fff" : "#555555"},selectedButton == 2 ? styles.selected : null]}>Episode précédent</Text>
 							<Text style={[styles.text, {padding: 5, marginLeft: 20 ,marginTop: 5, color: newValueEpisode < Object.keys(stateData.listUrlEpisodes).length ? "#fff" : "#555555"},selectedButton == 3 ? styles.selected : null]}>Episode suivant</Text>
 							<Text style={[styles.text, {padding: 5, marginLeft: 20 ,marginTop: 5},selectedButton == 4 ? styles.selected : null]}>Retour au menu</Text>
@@ -401,6 +424,7 @@ const PlayerScreen = () => {
 							<Text style={[styles.text, {padding: 5, marginLeft: 20 ,marginTop: 5},sourceSelectedButton == source.length ? styles.selected : null]}>Retour</Text>
 						</View>
 					}
+					<Text style={[styles.text, {textAlign: 'right', position: 'absolute', bottom: 5, right: 0, width: '100%', color: "#ffffff90", fontSize: 16}]}>{resolution}</Text>
 				</View>
 			}
 			{onLoading && !hasError &&

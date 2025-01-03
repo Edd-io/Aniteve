@@ -1,5 +1,4 @@
 import sqlite3
-from time import sleep
 import ast
 
 class Database:
@@ -28,6 +27,7 @@ class Database:
 				progress FLOAT,
 				status INTEGER,
 				see_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+				poster TEXT,
 				FOREIGN KEY (id_anime) REFERENCES anime_list (id) ON DELETE CASCADE
 			)''')
 		self.conn.commit()
@@ -90,8 +90,8 @@ class Database:
 		else:
 			print('Inserting id ' + str(anime['id']))
 			cursor.execute('''
-				INSERT INTO progress (id_anime, episode, season, progress, status)
-				VALUES (?, ?, ?, ?, ?)''', (anime['id'], anime['episode'], anime['allSeasons'][anime['seasonId']], anime['progress'], status))
+				INSERT INTO progress (id_anime, episode, season, progress, status, poster)
+				VALUES (?, ?, ?, ?, ?, ?)''', (anime['id'], anime['episode'], anime['allSeasons'][anime['seasonId']], anime['progress'], status, anime['poster']))
 		self.conn.commit()
 		cursor.close()
 
@@ -124,17 +124,18 @@ class Database:
 		for i in range(len(progress)):
 			progress[i] = {
 				"anime": {
-					"title": progress[i][9],
-					"alternative_title": progress[i][10],
-					"genre": ast.literal_eval(progress[i][11]),
+					"title": progress[i][10],
+					"alternative_title": progress[i][11],
+					"genre": ast.literal_eval(progress[i][12]),
 					"id": progress[i][1],
-					"img": progress[i][13],
-					"url": progress[i][12],
+					"img": progress[i][14],
+					"url": progress[i][13],
 				},
 				"episode": progress[i][2],
 				"season": progress[i][3],
 				"progress": progress[i][4],
 				"completed": progress[i][5],
+				"poster": progress[i][6],
 			}
 		return (progress)
 

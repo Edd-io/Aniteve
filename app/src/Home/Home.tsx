@@ -2,6 +2,7 @@ import React, {useState, useCallback, useEffect, useRef} from 'react';
 import { View, Text, StyleSheet, TextInput, Image, FlatList} from 'react-native';
 import { LinearGradient } from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
+import { localData } from '../Default';
 import remoteControl from './remoteControl';
 import ResumePopup from './ResumePopup'
 import SettingsPopup from './SettingsPopup';
@@ -40,6 +41,7 @@ const HomeScreen = () =>
 	const [searchInput, setSearchInput] = useState<string>('');
 	const [popupResume, setPopupResume] = useState<boolean>(false);
 	const [popupSettings, setPopupSettings] = useState<boolean>(false);
+	const [errServer, setErrServer] = useState<boolean>(false);
 	const refTextInput = useRef<TextInput>(null);
 	const flatListRef = useRef<FlatList>(null);
 	const navigation = useNavigation();
@@ -51,7 +53,7 @@ const HomeScreen = () =>
 		updateAnimeListWithSearchInput(searchInput, setAnimeList, anime_list, setSelectedAnimeVisual, setSelectedAnimeId, flatListRef)
 	}, [searchInput, refreshSearchList]);
 	useEffect(() => {
-		fetchCompleteAnimeList(setAnimeList, anime_list, range, setRefreshSearchList, refreshSearchList)
+		fetchCompleteAnimeList(setAnimeList, anime_list, range, setRefreshSearchList, refreshSearchList, setErrServer);
 	}, []);
 	useEffect(() => {
 		const keyboarListener = keyboardHandler(refTextInput, setSelectedAnimeId, setSelectedAnimeVisual, popupSettings);
@@ -96,6 +98,12 @@ const HomeScreen = () =>
 				columnWrapperStyle={{ justifyContent: 'flex-start', width: '95%', marginInline: 'auto'}}
 				scrollEnabled={false}
 			/>
+			{!(localData.addr?.length) &&
+			<Text style={[styles.titleAnime, {textAlign: 'center', width: '100%', position: 'absolute', top: 200}]}>Aucun serveur ajouté dans les paramètres{'\n'}Veuillez ajouter un serveur</Text>
+			}
+			{errServer &&
+			<Text style={[styles.titleAnime, {textAlign: 'center', width: '100%', position: 'absolute', top: 200}]}>Serveur introuvable{'\n'}Veuillez vérifier l'adresse du serveur</Text>
+			}
 		</View>
 	);
 }
@@ -288,5 +296,4 @@ const styles = StyleSheet.create({
 	},
 });
 
-// export default HomeScreen;
 export { HomeScreen, range, arrIdAnime, last};

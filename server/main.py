@@ -1,13 +1,18 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, Response
 from Class.Database import Database
 from Class.AnimeSama import AnimeSama
 from Class.Proxy import Proxy
 import ast
+import json
+import requests
+from credientials import *
+from flask_cors import CORS
 
 db = Database()
 site = AnimeSama(db)
 app = Flask(__name__)
-	
+CORS(app)
+
 @app.route('/api/get_all_anime')
 def get_all_anime():
 	try:
@@ -22,9 +27,19 @@ def get_all_anime():
 				'url': anime[4],
 				'img': anime[5]
 			})
-		return ({'anime_list': all_anime})
+		return (Response(
+			response=json.dumps(all_anime),
+			status=200,
+			mimetype='application/json',
+			headers={'Access-Control-Allow-Origin': '*'}
+		))
 	except Exception as e:
-		return ({'error': str(e)})
+		return (Response(
+			response=json.dumps({'error': str(e)}),
+			status=500,
+			mimetype='application/json',
+			headers={'Access-Control-Allow-Origin': '*'}
+		))
 
 @app.route('/api/get_anime_season', methods=['POST'])
 def get_anime_season():
@@ -36,9 +51,19 @@ def get_anime_season():
 			if key not in anime:
 				return ({'error': 'Missing key ' + key})
 		season = site.get_anime_season(anime)
-		return ({'season': season})
+		return (Response(
+			response=json.dumps({'season': season}),
+			status=200,
+			mimetype='application/json',
+			headers={'Access-Control-Allow-Origin': '*'}
+		))
 	except Exception as e:
-		return ({'error': str(e)})
+		return (Response(
+			response=json.dumps({'error': str(e)}),
+			status=500,
+			mimetype='application/json',
+			headers={'Access-Control-Allow-Origin': '*'}
+		))
 
 @app.route('/api/get_anime_episodes', methods=['POST'])
 def get_anime_episodes():
@@ -51,9 +76,19 @@ def get_anime_episodes():
 			if key not in anime:
 				return ({'error': 'Missing key ' + key})
 		episode = site.get_anime_episodes(anime)
-		return (episode)
+		return (Response(
+			response=json.dumps(episode),
+			status=200,
+			mimetype='application/json',
+			headers={'Access-Control-Allow-Origin': '*'}
+		))
 	except Exception as e:
-		return ({'error': str(e)})
+		return (Response(
+			response=json.dumps({'error': str(e)}),
+			status=500,
+			mimetype='application/json',
+			headers={'Access-Control-Allow-Origin': '*'}
+		))
 	
 @app.route('/api/srcFile', methods=['POST'])
 def srcFile():
@@ -67,9 +102,19 @@ def srcFile():
 		for key in need_keys:
 			if key not in anime:
 				return ({'error': 'Missing key ' + key})
-		return ({'src': site.get_source_file(url, anime['serverUrl'])})
+		return (Response(
+			response=json.dumps({'src': site.get_source_file(url, anime['serverUrl'])}),
+			status=200,
+			mimetype='application/json',
+			headers={'Access-Control-Allow-Origin': '*'}
+		))
 	except Exception as e:
-		return ({'error': str(e)})
+		return (Response(
+			response=json.dumps({'error': str(e)}),
+			status=500,
+			mimetype='application/json',
+			headers={'Access-Control-Allow-Origin': '*'}
+		))
 
 @app.route('/api/video')
 def video():
@@ -77,7 +122,12 @@ def video():
 
 	try:
 		if (url == 'https://'):
-			return ({'error': 'Missing url'})
+			return (Response(
+				response=json.dumps({'error': 'Missing url'}),
+				status=500,
+				mimetype='application/json',
+				headers={'Access-Control-Allow-Origin': '*'}
+			))
 		if (url.find('sibnet') != -1):
 			return (Proxy.sibnet(url))
 		elif (url.find('oneupload') != -1):
@@ -91,7 +141,7 @@ def video():
 
 @app.route('/api/update_progress', methods=['POST'])
 def update_progress():
-	need_keys = ['id', 'episode', 'seasonId', 'progress', 'totalEpisode', 'allSeasons']
+	need_keys = ['id', 'episode', 'seasonId', 'progress', 'totalEpisode', 'allSeasons', 'poster']
 	anime = request.get_json()
 
 	try:
@@ -99,9 +149,9 @@ def update_progress():
 			if key not in anime:
 				return {'error': 'Missing key ' + key}
 		db.update_progress(anime)
-		return {'status': 'success'}
+		return ({'status': 'success'})
 	except Exception as e:
-		return {'error': str(e)}
+		return ({'error': str(e)})
 	
 @app.route('/api/get_progress', methods=['POST'])
 def get_progress():
@@ -115,7 +165,7 @@ def get_progress():
 		progress = db.get_progress(anime)
 		return (progress)
 	except Exception as e:
-		return {'error': str(e)}
+		return ({'error': str(e)})
 	
 @app.route('/api/get_all_progress')
 def get_all_progress():
@@ -123,7 +173,28 @@ def get_all_progress():
 		progress = db.get_all_progress()
 		return (progress)
 	except Exception as e:
-		return {'error': str(e)}
+		return ({'error': str(e)})
+	
+@app.route('/api/tmdb', methods=['POST'])
+def tmdb():
+	need_keys = ['url']
+	data = request.get_json()
+
+	try:
+		for key in need_keys:
+			if key not in data:
+				return {'error': 'Missing key ' + key}
+		if (data['url'].startswith('https://api.themoviedb.org/3/') == False):
+			return {'error': 'Invalid url'}
+		response = requests.get(data['url'].replace('{api_key_tmdb}', 'api_key=' + key_api_tmbd))
+		return (Response(
+			response=response.text,
+			status=200,
+			mimetype='application/json',
+			headers={'Access-Control-Allow-Origin': '*'}
+		))
+	except Exception as e:
+		return ({'error': str(e)})
 
 
 if __name__ == '__main__':

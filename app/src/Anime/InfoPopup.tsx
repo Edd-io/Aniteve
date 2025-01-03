@@ -2,7 +2,6 @@ import React from 'react';
 import { Text, View, StyleSheet, Image } from 'react-native';
 
 const InfoPopup = ({animeData}: any) => {
-	console.log(animeData.firstAirDate);
 	return (
 		<View style={styles.popupInfo}>
 			<View style={styles.island}>

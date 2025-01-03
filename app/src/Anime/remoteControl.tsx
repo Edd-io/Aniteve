@@ -16,7 +16,8 @@ const remoteControl = ({navigation, anime, listUrlEpisodes, logo, resumeData, al
 	setEpsFocused, epsFocused, setLeftPartFocused, leftPartFocused, setShowAvailableSeasons,
 	showAvailableSeasons, setOnSelectedSeasons, onSelectedSeasons, listSeasons, pageSelected,
 	setPageSelected, pageSelectedSeasons, setPageSelectedSeasons, leftButtonSelected,
-	setLeftButtonSelected, idSelectedSeason, setIdSelectedSeason, setListSeasons, setPopupInfo, popupInfo}: any) => {
+	setLeftButtonSelected, idSelectedSeason, setIdSelectedSeason, setListSeasons, setPopupInfo,
+	popupInfo, dataAnime}: any) => {
 
 	function handleKeyPress(data: any)
 	{
@@ -56,7 +57,7 @@ const remoteControl = ({navigation, anime, listUrlEpisodes, logo, resumeData, al
 	{
 		if (!leftPartFocused)
 		{
-			if (!showAvailableSeasons && epsFocused < listEps.length)
+			if (!showAvailableSeasons && (epsFocused + (12 * (pageSelected - 1))) < nbEpisodes)
 				setEpsFocused(epsFocused + 1);
 			else if (onSelectedSeasons < listSeasons.length - 1)
 				setOnSelectedSeasons(onSelectedSeasons + 1);
@@ -155,6 +156,7 @@ const remoteControl = ({navigation, anime, listUrlEpisodes, logo, resumeData, al
 									listUrlEpisodes: {},
 									logo: logo,
 									back: anime,
+									poster: dataAnime.poster,
 								}});
 							}
 						}
@@ -172,6 +174,7 @@ const remoteControl = ({navigation, anime, listUrlEpisodes, logo, resumeData, al
 						logo: logo,
 						back: anime,
 						resumeTime: resumeData.progress,
+						poster: dataAnime.poster,
 					}});
 				}
 			}
@@ -196,6 +199,7 @@ const remoteControl = ({navigation, anime, listUrlEpisodes, logo, resumeData, al
 					listUrlEpisodes: listUrlEpisodes,
 					logo: logo,
 					back: anime,
+					poster: dataAnime.poster,
 				}});
 			}
 			else

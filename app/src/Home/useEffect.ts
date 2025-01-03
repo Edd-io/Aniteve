@@ -64,8 +64,10 @@ function updateAnimeListWithSearchInput(searchInput: string, setAnimeList: any, 
 	}
 }
 
-function fetchCompleteAnimeList(setAnimeList: any, anime_list: any, range: any, setRefreshSearchList: any, refreshSearchList: boolean)
+function fetchCompleteAnimeList(setAnimeList: any, anime_list: any, range: any, setRefreshSearchList: any, refreshSearchList: boolean, setErrServer: any)
 {
+	if (!(localData.addr?.length))
+		return ;
 	fetch(localData.addr + '/api/get_all_anime').then((response) => {
 		return (response.json());
 	}).then((data) => {
@@ -76,7 +78,7 @@ function fetchCompleteAnimeList(setAnimeList: any, anime_list: any, range: any, 
 		setRefreshSearchList(!refreshSearchList);
 		setAnimeList(anime_list.complete.slice(range.start, range.end));
 	}).catch((error) => {
-		console.warn(error);
+		setErrServer(true);
 	});
 }
 

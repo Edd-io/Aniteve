@@ -36,12 +36,16 @@ class AnimeSama:
 	url = URL_AS + "catalogue/listing_all.php"
 	thread_status_anime = None
 	db = None
+	disable_get_anime_status = True
 
 	def __init__(self, db):
 		self.db = db
 		self.get_anime_list()
-		thread_status_anime = threading.Thread(target=self.get_anime_status)
-		thread_status_anime.start()
+		if self.disable_get_anime_status == False:
+			thread_status_anime = threading.Thread(target=self.get_anime_status)
+			thread_status_anime.start()
+		else:
+			print("\033[91mGet anime status is disabled.\033[0m")
 	
 	def get_anime_list(self):
 		response	= requests.get(self.url)
@@ -230,7 +234,7 @@ class AnimeSama:
 	def get_anime_status(self):
 		while (1):
 			try:
-				sleep(5)
+				sleep(30)
 				response = requests.get(URL_AS)
 				soup = BeautifulSoup(response.text, 'html.parser')
 				list_anime = soup.find('div', id='containerAjoutsAnimes')

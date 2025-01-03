@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { Image, StyleSheet, Text, View, FlatList, ActivityIndicator} from 'react-native';
 import { useRoute, RouteProp, useNavigation, NavigationProp } from '@react-navigation/native';
 import { LinearGradient } from 'react-native-linear-gradient';
-import credentials from '../../credentials.json';
 import remoteControl from './remoteControl';
 import InfoPopup from './InfoPopup';
 import { localData } from '../Default';
@@ -52,21 +51,42 @@ const get_data_from_tmdb = async (id: string, isMovie: boolean) => {
 
 	if (!isMovie)
 	{
-		url = `https://api.themoviedb.org/3/search/tv?api_key=${credentials.key_api_tmbd}&query=${id}&language=fr-FR`;
-		response = await fetch(url);
+		url = `https://api.themoviedb.org/3/search/tv?{api_key_tmdb}&query=${id}&language=fr-FR`;
+		response = await fetch(localData.addr + '/api/tmdb', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({url: url}),
+		});
 		data = await response.json();
 		allAnimeData = data?.results.filter((result: any) => result.genre_ids.includes(16));
 	}
 	else
 	{
-		url = `https://api.themoviedb.org/3/search/movie?api_key=${credentials.key_api_tmbd}&query=${id}&language=fr-FR`;
-		response = await fetch(url);
+		url = `https://api.themoviedb.org/3/search/movie?{api_key_tmdb}&query=${id}&language=fr-FR`;
+		response = await fetch(localData.addr + '/api/tmdb', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({url: url}),
+		});
 		data = await response.json();
 		allAnimeData = data?.results.filter((result: any) => result.genre_ids.includes(16));
 	}
 	if (allAnimeData.length === 0)
 	{
 		dataAnime.noData = true;
+		dataAnime.title = ''
+		dataAnime.firstAirDate = ''
+		dataAnime.name = ''
+		dataAnime.originalName = ''
+		dataAnime.overview = ''
+		dataAnime.poster = ''
+		dataAnime.popularity = 0
+		dataAnime.note = 0
+		dataAnime.nbVotes = 0
 		return (null);
 	}
 	for (let i = 0; i < allAnimeData.length; i++)
@@ -74,25 +94,37 @@ const get_data_from_tmdb = async (id: string, isMovie: boolean) => {
 	
 	let animeData = allAnimeData[allDiff.indexOf(Math.min(...allDiff))];
 	let idAnime: number = animeData?.id;
-	console.log(animeData);
+	
 	dataAnime.title = animeData.title ? animeData.title : animeData.name;
 	dataAnime.firstAirDate = animeData.first_air_date ? animeData.first_air_date : animeData.release_date;
 	dataAnime.name = animeData.name;
 	dataAnime.originalName = animeData.original_name;
 	dataAnime.overview = animeData.overview;
-	dataAnime.poster = base_url_tmdb + animeData.poster_path;
+	dataAnime.poster = base_url_tmdb + animeData.poster_path
 	dataAnime.popularity = animeData.popularity;
 	dataAnime.note = animeData.vote_average;
 	dataAnime.nbVotes = animeData.vote_count;
 	dataAnime.noData = false;
 
-	url = `https://api.themoviedb.org/3/${isMovie ? 'movie' : 'tv'}/${idAnime}/images?api_key=${credentials.key_api_tmbd}&include_image_language=ja,en,null`;
-	response = await fetch(url);
+	url = `https://api.themoviedb.org/3/${isMovie ? 'movie' : 'tv'}/${idAnime}/images?{api_key_tmdb}&include_image_language=ja,en,null`;
+	response = await fetch(localData.addr + '/api/tmdb', {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json',
+		},
+		body: JSON.stringify({url: url}),
+	});
 	data = await response.json();
 	if (data.logos.length === 0) 
 	{
-		const fallbackUrl = `https://api.themoviedb.org/3/${isMovie ? 'movie' : 'tv'}/${idAnime}/images?api_key=${credentials.key_api_tmbd}`;
-		response = await fetch(fallbackUrl);
+		const fallbackUrl = `https://api.themoviedb.org/3/${isMovie ? 'movie' : 'tv'}/${idAnime}/images?{api_key_tmdb}`;
+		response = await fetch(fallbackUrl, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({url: fallbackUrl}),
+		});
 		data = await response.json();
 	}
 	return (data);
@@ -230,7 +262,8 @@ const AnimeScreen = () => {
 			else
 				setListEps([...Array(nbEpisodes).keys()].map(x => x + 1));
 		}).catch((error) => {
-			console.warn(error);
+			nbEpisodes = 0;
+			listUrlEpisodes = []
 		});
 	}, [idSelectedSeason, listSeasons]);
 
@@ -268,7 +301,8 @@ const AnimeScreen = () => {
 		setEpsFocused, epsFocused, setLeftPartFocused, leftPartFocused, setShowAvailableSeasons,
 		showAvailableSeasons, setOnSelectedSeasons, onSelectedSeasons, listSeasons, pageSelected,
 		setPageSelected, pageSelectedSeasons, setPageSelectedSeasons, leftButtonSelected,
-		setLeftButtonSelected, idSelectedSeason, setIdSelectedSeason, setListSeasons, setPopupInfo, popupInfo
+		setLeftButtonSelected, idSelectedSeason, setIdSelectedSeason, setListSeasons, setPopupInfo,
+		popupInfo, dataAnime
 	});
 
 	return (
