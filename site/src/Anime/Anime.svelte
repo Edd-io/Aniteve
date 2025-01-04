@@ -11,7 +11,8 @@
 	let		backgroundImg			= '';
 	let		logoImg					= '';
 	let		genreString: string[]	= [];
-	let		allSeasons				= [];
+	let		allSeasons: any			= [];
+	let		dominantColor			= '';
 	let		dataFromTmdb			= {
 										title: '',
 										firstAirDate: '',
@@ -79,10 +80,8 @@
 			dataFromTmdb.fetch = true;
 			return (null);
 		}
-		console.log(allAnimeData);
 		for (let i = 0; i < allAnimeData.length; i++)
-			allDiff.push(allAnimeData[i][isMovie ? 'title' : 'name'].length - id.length);
-		
+			allDiff.push(Math.abs(allAnimeData[i][isMovie ? 'title' : 'name'].length - id.length));
 		let animeData = allAnimeData[allDiff.indexOf(Math.min(...allDiff))];
 		let idAnime: number = animeData?.id;
 		
@@ -156,11 +155,33 @@
 				logoImg = base_url_tmdb + logoData.file_path;
 			if (backdropData)
 				backgroundImg = base_url_tmdb + backdropData.file_path;
+			getAverageColor(backgroundImg ? backgroundImg : anime.img, (color: any) => {
+				if (menu.selected !== 3)
+					return;
+				dominantColor = `rgb(${Math.abs(color[0] - 40)}, ${Math.abs(color[1] - 40)}, ${Math.abs(color[2] - 40)})`;
+				menu.dominantColor = dominantColor;
+			});
 		});
 	}).catch((error) => {
 		console.warn(error);
 	});
 
+	function getAverageColor(imageSrc: string, callback: Function)
+	{
+		fetch(serverUrl + '/api/get_average_color', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({url: imageSrc}),
+		}).then((response) => {
+			return response.json();
+		}).then((data) => {
+			callback(data.average_color);
+		}).catch((error) => {
+			console.warn(error);
+		});
+	}
 </script>
 
 <main>
@@ -207,7 +228,7 @@
 		<div class='bg-button'>
 			<button class="see-button" on:click={() => {
 				menu.data = {
-					anime: anime,
+					anime: {...menu.data, season: allSeasons},
 					tmdb: dataFromTmdb
 				}
 				menu.selected = 4;
@@ -257,6 +278,7 @@
 		position: absolute;
 		top: 0;
 		left: 0;
+		opacity: 1;
 		animation: showBgAnime 0.5s;
 	}
 	.hideBg {

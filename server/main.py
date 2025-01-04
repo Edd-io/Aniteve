@@ -7,6 +7,9 @@ import json
 import requests
 from credientials import *
 from flask_cors import CORS
+from PIL import Image
+from collections import Counter
+from io import BytesIO
 
 db = Database()
 site = AnimeSama(db)
@@ -67,11 +70,10 @@ def get_anime_season():
 
 @app.route('/api/get_anime_episodes', methods=['POST'])
 def get_anime_episodes():
-	need_keys = ['url', 'serverUrl']
+	need_keys = ['url', 'serverUrl', 'season']
 
 	try:
 		anime = request.get_json()
-		print(anime)
 		for key in need_keys:
 			if key not in anime:
 				return ({'error': 'Missing key ' + key})
@@ -195,8 +197,31 @@ def tmdb():
 		))
 	except Exception as e:
 		return ({'error': str(e)})
+	
+@app.route('/api/get_average_color', methods=['POST'])
+def get_average_color():
+	need_keys = ['url']
+	data = request.get_json()
+
+	try:
+		for key in need_keys:
+			if key not in data:
+				return {'error': 'Missing key ' + key}
+		response = requests.get(data['url'])
+		image = Image.open(BytesIO(response.content))
+		image = image.resize((25, 25))
+		pixels = list(image.getdata())
+		total_pixels = len(pixels)
+		avg_color = tuple(sum(channel) // total_pixels for channel in zip(*pixels))
+		return Response(
+			response=json.dumps({'average_color': avg_color}),
+			status=200,
+			mimetype='application/json',
+			headers={'Access-Control-Allow-Origin': '*'}
+		)
+	except Exception as e:
+		return {'error': str(e)}
 
 
 if __name__ == '__main__':
-	# print('Server is running')
 	app.run(debug=False, port=8080, host='0.0.0.0')

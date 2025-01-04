@@ -1,19 +1,126 @@
 <script lang='ts'>
+    import { writable } from "svelte/store";
+	import VideoOverlay from "./VideoOverlay.svelte";
 	export let menu: any;
 
-	console.log(menu);
+	const	serverUrl				= 'http://localhost:8080';
+	const	data					= menu.data;
+	const	genreString: string[]	= [];
+	let		nbEpisodes				= 0;
+	let		listUrlEpisodes: any	= [];
+	let		idSelectedSeason		= 0;
+	let		selectedEpisode			= 0;
+	let		selectedSource			= 0;
+	let		listSource: string[]	= [];
+	let		sourceVideo				= writable('');
+
+	const	banGenre = ['vostfr', 'vf', 'cardlistanime', 'anime', '-', 'scans', 'film'];
+	data.anime?.genre?.map((genre: string) => {
+		if (!banGenre.includes(genre.toLowerCase()))
+			genreString?.push(genre); 
+	});
+
+	console.log(data);
+
+	function changeSeason()
+	{
+		fetch(serverUrl + '/api/get_anime_episodes', {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json',
+		}, 
+		body: JSON.stringify({url: data.anime.url, season: data.anime.season[idSelectedSeason], serverUrl: serverUrl}),
+		}).then((response) => {
+			return response.json();
+		}).then((data) => {
+			nbEpisodes = data.number;
+			listUrlEpisodes = data.episodes;
+			changeEpisode();
+		}).catch((error) => {
+			nbEpisodes = 0;
+			listUrlEpisodes = []
+		});
+	}
+	changeSeason();
+
+	function changeEpisode()
+	{
+		console.log('changeEpisode');
+		listSource = listUrlEpisodes['eps' + (selectedEpisode + 1)];
+		selectedSource = 0;
+		if (listSource.length > 0)
+			changeSource();
+	}
+
+	function changeSource()
+	{
+		fetch(listSource[selectedSource], {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({serverUrl: serverUrl}),
+		}).then((response) => {
+			return response.json();
+		}).then((data) => {
+			console.log(data);
+			sourceVideo.update(() => data.src);
+		}).catch((error) => {
+			sourceVideo.update(() => '');
+		});
+	}
 </script>
 
 <main>
 	<div class='tile left-part'>
-		<div id="player">
-			<!-- svelte-ignore a11y_media_has_caption -->
-			<video src="http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4" autoplay>
-			</video>
+		<VideoOverlay src={sourceVideo} bind:menu={menu} />
+		<div class='description'>
+			<div style="display: flex;">
+				{#if data.tmdb.poster != '' && !data.tmdb.noData}
+					<div class="poster">
+						<img src={data.tmdb.poster} alt={data.anime.title} style="width: 100%; object-fit: contain; border-radius: 0.5rem;">
+					</div>
+				{/if}
+				<div style="margin-left: 1rem;">
+					<h1 class='title'>{data.tmdb.title ? data.tmdb.title : data.anime.title}</h1>
+					<h2 class='original-name'>{data.tmdb.originalName ? data.tmdb.originalName :''}</h2>
+					<h3 class='genre'>{genreString.join(', ')}</h3>
+					{#if !data.tmdb.noData}
+						<p class="overview" >{data.tmdb.overview ? data.tmdb.overview : data.anime.description}</p>
+					{/if}
+				</div>
+
+			</div>
 		</div>
 	</div>
 	<div class='tile right-part'>
-
+		<select id="seasons" on:change={(event) => {
+			idSelectedSeason = parseInt((event.target as HTMLSelectElement).value);
+			changeSeason();
+		}}>
+			{#if data.anime.season}
+				{#each data.anime.season as season, index}
+					<option value={index}>{season}</option>
+				{/each}
+			{/if}
+		</select>
+		<div class='list-episodes'>
+			{#if nbEpisodes > 0}
+				{#each Array(nbEpisodes) as _, index}
+					<button class="no-style-button" on:click={() => selectedEpisode = index}
+						style="{selectedEpisode == index ? "background-color: #ccc" : ""}"
+						on:click={() => {
+							selectedEpisode = index;
+							changeEpisode();
+						}}
+					>
+						<p>Episode {index + 1}</p>
+					</button>
+				{/each}
+			{:else}
+				<p style="text-align: center; padding: 1rem">Aucun épisode disponible pour le moment</p>
+			{/if}
+		</div>
 	</div>
 </main>
 
@@ -26,6 +133,17 @@
 		position: relative;
 		flex-direction: row;
 		justify-content: space-between;
+		color: #fff;
+	}
+	.no-style-button {
+		background-color: transparent;
+		border: none;
+		cursor: pointer;
+		color: #fff;
+		padding: 0.4rem;
+		display: flex;
+		align-items: center;
+		width: 100%;
 	}
 	.tile {
 		border-radius: 0.5rem;
@@ -37,28 +155,64 @@
 		width: 70%;
 		height: 100%;
 		margin-right: 1rem;
-
+		overflow: scroll;
+		padding: 1rem;
 	}
 	.right-part {
 		width: 30%;
 		min-width: 200px;
 		height: 100%;
+		padding: 1rem;
 	}
-	#player {
-		width: 100%;
-		height: 0;
-		padding-top: 56.25%;
+	.description {
+		padding: 1rem;
+		background-color: #0000003b;
+		border-radius: 0 0 0.5rem 0.5rem;
+	}
+	.title {
+		font-size: 1.5rem;
+		margin-top: 0.2rem;
+	}
+	.poster {
+		width: 10rem;
+		min-width: 10rem;
+		max-width: 50%;
 		object-fit: contain;
-		background-color: #000;
-		position: relative;
 	}
-	#player video {
-		position: absolute;
-		top: 0;
-		left: 0;
+	.original-name {
+		font-size: 1rem;
+		color: #c7c7c7;
+	}
+	.genre {
+		font-size: 0.8rem;
+		color: #c7c7c7;
+	}
+	.overview {
+		font-size: 0.9rem;
+		margin-top: 1rem;
+		text-align: justify;
+	}
+	select {
+		appearance: none;
+		-webkit-appearance: none;
+		-moz-appearance: none;
+		background: url('../assets/img/select.png') no-repeat right center;
+		background-size: 2rem;
+	}
+	#seasons {
 		width: 100%;
-		height: 100%;
-		object-fit: contain;
+		height: 2rem;
+		background-color: #0000003b;
+		color: #fff;
+		border: none;
+		border-radius: 0.5rem;
+		text-align: center;
 	}
-
+	.list-episodes {
+		margin-block: 1rem;
+		height: calc(100% - 3rem);
+		background-color: #0000003b;
+		border-radius: 0.5rem;
+		overflow: scroll;
+	}
 </style>

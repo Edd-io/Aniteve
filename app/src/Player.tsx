@@ -164,6 +164,12 @@ const PlayerScreen = () => {
 		.then((response) => {
 			try {
 				response.json().then((dataFetch) => {
+					console.log(dataFetch);
+					if (dataFetch.src === null)
+					{
+						setHasError(true);
+						setUrlVideo("");
+					}
 					setTimeToResume(currentTime);
 					if (dataFetch.src.includes('.mp4'))
 						setTypeSource('video/mp4');
@@ -180,6 +186,7 @@ const PlayerScreen = () => {
 			}
 		}).catch((error) => {
 			setHasError(true);
+			setUrlVideo("");
 		});
 	}, [source, sourceSelected]);
 

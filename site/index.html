@@ -4,6 +4,7 @@
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<title>Aniteve</title>
+		<script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
 		<style>
 			* {
 				margin: 0;
@@ -11,26 +12,37 @@
 				box-sizing: border-box;
 				font-size: 24px;
 			}
+
 			body {
-				background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
-				background-size: 400% 400%;
-				animation: gradient 15s ease infinite;
-				height: 100vh;
-				font-family: Arial, sans-serif;
-				background-color: #f0f0f0;
+				margin: 0;
+				padding: 0;
+				width: 100%;
+				height: 100%;
+			}
+			#pixie {
+				position: fixed;
+				background-color: #164979;
+				filter: progid: DXImageTransform.Microsoft.gradient( startColorstr='#040429', endColorstr='#257EB7', GradientType=0);
+				/* IE6-9 */
+				background: -ms-linear-gradient(top, #0E2A55 40%, #0E2A55 40%, #1D6196 60%);
+				/* IE10+ */
+				background: -webkit-gradient(linear, center top, center bottom, from(#040429), to(#257EB7));
+				/* Chrome, Safari 4+ */
+				background: -webkit-linear-gradient(center top, #040429, #257EB7) repeat scroll 0 0 rgba(0, 0, 0, 0);
+				/* Chrome 10-25, iOS 5+, Safari 5.1+ */
+				background: -moz-linear-gradient(center top, #040429, #257EB7) repeat scroll 0 0 rgba(0, 0, 0, 0);
+				/* Firefox 3.6-15 */
+				background: -o-linear-gradient(center top, #040429, #257EB7) repeat scroll 0 0 rgba(0, 0, 0, 0);
+				/* Opera 11.10-12.00 */
+				background: linear-gradient(center top, #040429, #257EB7) repeat scroll 0 0 rgba(0, 0, 0, 0);
+				/* Chrome 26, Firefox 16+, IE 10+, Opera 12.10+ */
+				margin: 0;
+				padding: 0;
+				background-size: 100% 100%;
+				width: 100%;
+				height: 100%;
 			}
 
-			@keyframes gradient {
-				0% {
-					background-position: 0% 50%;
-				}
-				50% {
-					background-position: 100% 50%;
-				}
-				100% {
-					background-position: 0% 50%;
-				}
-			}
 
 			@keyframes fadeOut {
 				0% {
@@ -90,7 +102,115 @@
 		</style>
 	</head>
 	<body>
+				
+		<div style="width: 100vw; height: 100vh; position: fixed; top: 0; left: 0; z-index: -1; filter: blur(0px);">
+			<canvas id="pixie"></canvas>
+			<div class="container"></div>
+		</div>
 		<div id="app"></div>
 		<script type="module" src="/src/main.ts"></script>
 	</body>
+	<script>
+		// https://codepen.io/soladiem/pen/YZVWbB
+		$(document).ready(function () {
+			let WIDTH = window.innerWidth;
+			let HEIGHT = window.innerHeight;
+
+			const canvas = document.getElementById("pixie");
+			const con = canvas.getContext("2d");
+
+			canvas.width = WIDTH;
+			canvas.height = HEIGHT;
+
+			const pxs = [];
+			const rint = 60;
+
+			class Circle {
+				constructor() {
+					this.s = {
+						ttl: 8000,
+						xmax: 5,
+						ymax: 2,
+						rmax: 10,
+						rt: 1,
+						xdef: WIDTH / 2,
+						ydef: HEIGHT / 2,
+						xdrift: 4,
+						ydrift: 4,
+						random: true,
+						blink: true,
+					};
+					this.reset();
+				}
+
+				reset() {
+					this.x = this.s.random ? WIDTH * Math.random() : this.s.xdef;
+					this.y = this.s.random ? HEIGHT * Math.random() : this.s.ydef;
+					this.r = (this.s.rmax - 1) * Math.random() + 1;
+					this.dx = Math.random() * this.s.xmax * (Math.random() < 0.5 ? -1 : 1);
+					this.dy = Math.random() * this.s.ymax * (Math.random() < 0.5 ? -1 : 1);
+					this.hl = this.s.ttl / rint * (this.r / this.s.rmax);
+					this.rt = Math.random() * this.hl;
+					this.s.rt = Math.random() + 1;
+					this.stop = Math.random() * 0.2 + 0.4;
+					this.s.xdrift *= Math.random() * (Math.random() < 0.5 ? -1 : 1);
+					this.s.ydrift *= Math.random() * (Math.random() < 0.5 ? -1 : 1);
+				}
+
+				fade() {
+					this.rt += this.s.rt;
+				}
+
+				move() {
+					this.x += (this.rt / this.hl) * this.dx;
+					this.y += (this.rt / this.hl) * this.dy;
+
+					if (this.x > WIDTH || this.x < 0) this.dx *= -1;
+					if (this.y > HEIGHT || this.y < 0) this.dy *= -1;
+				}
+
+				draw(con) {
+					if (this.s.blink && (this.rt <= 0 || this.rt >= this.hl)) {
+						this.s.rt *= -1;
+					} else if (this.rt >= this.hl) {
+						this.reset();
+					}
+
+					const e = 1 - this.rt / this.hl;
+					con.beginPath();
+					con.arc(this.x, this.y, this.r, 0, Math.PI * 2, true);
+					con.closePath();
+
+					const t = this.r * e;
+					const g = con.createRadialGradient(this.x, this.y, 0, this.x, this.y, t <= 0 ? 1 : t);
+					g.addColorStop(0, `rgba(255,255,255,${e})`);
+					g.addColorStop(this.stop, `rgba(77,101,181,${e * 0.6})`);
+					g.addColorStop(1, "rgba(77,101,181,0)");
+
+					con.fillStyle = g;
+					con.fill();
+				}
+			}
+
+			function draw() {
+				con.clearRect(0, 0, WIDTH, HEIGHT);
+				pxs.forEach((circle) => {
+					circle.fade();
+					circle.move();
+					circle.draw(con);
+				});
+			}
+			for (let e = 0; e < 100; e++)
+			{
+				pxs.push(new Circle());
+			}
+			setInterval(draw, rint);
+			$(window).resize(function () {
+				WIDTH = window.innerWidth;
+				HEIGHT = window.innerHeight;
+				canvas.width = WIDTH;
+				canvas.height = HEIGHT;
+			});
+		});
+	</script>
 </html>

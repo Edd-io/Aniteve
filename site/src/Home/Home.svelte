@@ -8,6 +8,7 @@
 	let animeSelected: any = {bool: false, id: 0};
 	let counter: number = 0;
 
+	menu.dominantColor = '#c7c7c75c';
 	fetch('http://localhost:8080/api/get_all_anime')
 	.then(res => res.json())
 	.then(data => {
@@ -74,14 +75,16 @@
 		align-items: center;
 		padding: 0 10px;
 		height: 90%;
-		width: 40%;
-		margin-left: auto;
-		min-width: 200px;
-		max-width: 400px;
+		width: 97%;
+		margin-inline: auto;
 		background-color: #c7c7c75c;
 		border: 1px solid #c7c7c72b;
 		box-shadow: 0 0 5px #0000003b;
 		color: #fff;
+	}
+
+	.top-bar .search-input input::placeholder {
+		color: rgb(159, 159, 159);
 	}
 	.top-bar .search-input img {
 		height: 75%;

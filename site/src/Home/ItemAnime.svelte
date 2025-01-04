@@ -12,8 +12,11 @@
 			const htmlTile = tile as HTMLElement;
 			if (htmlTile.getAttribute('itemId') == animeData.id)
 			{
+				const copy = htmlTile.cloneNode(true) as HTMLElement;
+				copy.style.opacity = '0';
 				const pos = htmlTile.getBoundingClientRect();
-
+				
+				htmlTile.parentNode?.insertBefore(copy, htmlTile);
 				htmlTile.style.position = 'absolute';
 				htmlTile.style.top = pos.top + 'px';
 				htmlTile.style.left = pos.left + 'px';
@@ -47,7 +50,7 @@
 		<img src="{animeData.img}" alt="{animeData.title}" />
 	</div>
 	<div class="tile-content">
-		<p>{animeData.title.length > 30 ? animeData.title.slice(0, 30) + '...' : animeData.title}</p>
+		<p>{animeData.title.length > 40 ? animeData.title.slice(0, 40) + '...' : animeData.title}</p>
 	</div>
 </button>
 
@@ -63,12 +66,13 @@
 		align-items: center;
 	}
 	.tile {
-		width: 10rem;
-		height: 9rem;
+		width: 14rem;
+		height: 12rem;
 		border-radius: 0.5rem;
 		transition: background-color 0.2s, scale 0.2s;
 		margin: 0.5rem;
 		padding: 0.5rem;
+		padding-bottom: 0;
 		background-color: #c7c7c75c;
 		border: 1px solid #c7c7c72b;
 		box-shadow: 0 0 5px #0000003b;
@@ -84,7 +88,7 @@
 	}
 	.img-container {
 		width: 100%;
-		height: 5rem;
+		height: 10rem;
 	}
 	.tile img {
 		width: 100%;

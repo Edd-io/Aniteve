@@ -38,7 +38,7 @@ class Database:
 		cursor = self.conn.cursor()
 		isPresent = cursor.execute('''
 			SELECT * FROM anime_list
-			WHERE title = ?''', (anime['title'],)).fetchone()
+			WHERE url = ?''', (anime['url'],)).fetchone()
 		if isPresent:
 			return
 		else:

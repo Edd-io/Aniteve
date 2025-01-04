@@ -4,19 +4,15 @@
 	import Player from './Player/Player.svelte';
 
 	let menu: any = {
-		selected: 4 as number,
-		data: {}
-	}; // 0: home, 1: resume, 2: settings, 3: anime, 4: player
-	
+		selected: 0 as number,
+		data: {} as any,
+		dominantColor: '' as string
+	}; // 0: home, 1: resume, 2: settings, 3: anime, 4: player	
 </script>
 
 
 <main>
-	<div id="left-bar" style="{menu.selected === 3 ?
-		'border-radius: 0.5rem 0 0 0.5rem; background-color: #444;' 
-		:
-		'background-color: #c7c7c75c; border: 1px solid #c7c7c72b;box-shadow: 0 0 5px #0000003b'
-	}">
+	<div id="left-bar" style="background-color: {menu.dominantColor}; border: 1px solid #c7c7c72b;box-shadow: 0 0 5px #0000003b; {menu.selected !== 3 ? 'border-radius: 0.5rem;' : ''}">
 		<h1 id="logo">Logo</h1>
 		<button on:click={() => menu.selected = 0} class='no-style-button {menu.selected === 0 ? "selected" : ""} space'>
 			<img src="../assets/img/home.png" alt="home" />
@@ -50,6 +46,7 @@
 		width: 100vw;
 		padding: 1rem;
 		position: relative;
+		font-family: 'Roboto', sans-serif;
 	}
 	.no-style-button {
 		background-color: transparent;
@@ -62,11 +59,12 @@
 	#left-bar {
 		width: 80px;
 		height: 100%;
-		border-radius: 0.5rem;
+		border-radius: 0.5rem 0 0 0.5rem;
 		position: relative;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
+		transition: background-color 0.5s;
 	}
 	#left-bar #logo {
 		color: #fff;
