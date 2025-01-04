@@ -130,6 +130,7 @@
 	}).then((response) => {
 		return response.json();
 	}).then((data) => {
+		console.log(data);
 		let season = data.season;
 		let isMovie = false;
 

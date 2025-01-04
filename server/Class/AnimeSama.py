@@ -65,6 +65,7 @@ class AnimeSama:
 			url = anime.find('a')['href']
 			if (url[len(url) - 1] == '/'):
 				url = url[:-1]
+			url = "".join(url.split())
 			img = anime.find('img')['src']
 			all_anime.append({'title': title, 'alternative_title': alternative_title, 'genre': anime['class'], 'url': url, 'img': img})
 		for i, anime in enumerate(anime_list2):
@@ -78,6 +79,7 @@ class AnimeSama:
 			url = anime.find('a')['href']
 			if (url[len(url) - 1] == '/'):
 				url = url[:-1]
+			url = "".join(url.split())
 			img = anime.find('img')['src']
 			all_anime.append({'title': title, 'alternative_title': alternative_title, 'genre': anime['class'], 'url': url, 'img': img})
 		for anime in all_anime:

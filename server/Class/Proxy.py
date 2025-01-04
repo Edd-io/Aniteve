@@ -81,7 +81,7 @@ class Proxy:
 		}
 		if 'Range' in request.headers:
 			headers['Range'] = request.headers['Range']
-		response = requests.get(url, headers=headers, stream=True, timeout=60)
+		response = requests.get(url, headers=headers, stream=True)
 		return Response(
 			response.iter_content(chunk_size=1024),
 			content_type=response.headers.get('Content-Type', 'application/octet-stream'),

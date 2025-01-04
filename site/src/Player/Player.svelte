@@ -10,9 +10,7 @@
 	let		listUrlEpisodes: any	= [];
 	let		idSelectedSeason		= 0;
 	let		selectedEpisode			= 0;
-	let		selectedSource			= 0;
-	let		listSource: string[]	= [];
-	let		sourceVideo				= writable('');
+	const	listSource: any			= writable([]);
 
 	const	banGenre = ['vostfr', 'vf', 'cardlistanime', 'anime', '-', 'scans', 'film'];
 	data.anime?.genre?.map((genre: string) => {
@@ -46,34 +44,13 @@
 	function changeEpisode()
 	{
 		console.log('changeEpisode');
-		listSource = listUrlEpisodes['eps' + (selectedEpisode + 1)];
-		selectedSource = 0;
-		if (listSource.length > 0)
-			changeSource();
-	}
-
-	function changeSource()
-	{
-		fetch(listSource[selectedSource], {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-			},
-			body: JSON.stringify({serverUrl: serverUrl}),
-		}).then((response) => {
-			return response.json();
-		}).then((data) => {
-			console.log(data);
-			sourceVideo.update(() => data.src);
-		}).catch((error) => {
-			sourceVideo.update(() => '');
-		});
+		listSource.update(() => listUrlEpisodes['eps' + (selectedEpisode + 1)]);
 	}
 </script>
 
 <main>
 	<div class='tile left-part'>
-		<VideoOverlay src={sourceVideo} bind:menu={menu} />
+		<VideoOverlay srcs={listSource} bind:menu={menu} />
 		<div class='description'>
 			<div style="display: flex;">
 				{#if data.tmdb.poster != '' && !data.tmdb.noData}
