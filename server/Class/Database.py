@@ -135,7 +135,7 @@ class Database:
 				"season": progress[i][3],
 				"progress": progress[i][4],
 				"completed": progress[i][5],
-				"poster": progress[i][6],
+				"poster": progress[i][7],
 			}
 		return (progress)
 

@@ -9,6 +9,7 @@
 	export let selectedEpisode: number;
 	export let idSelectedSeason: number;
 	export let allSeasons: any;
+	export let progress: any;
 
 	const	serverUrl					= 'http://localhost:8080';
 
@@ -33,6 +34,7 @@
 	let animationOverlay: boolean		= false;
 	let showOverlay: boolean			= false;
 	let hasAlreadyPlayed: boolean		= false;
+	let deadSource: boolean				= false;
 
 	menu.dominantColor = '#c7c7c75c';
 	onMount(() => {
@@ -44,7 +46,6 @@
 		document.addEventListener("keydown", handleKeydown);
 		document.addEventListener('fullscreenchange', handleFullscreen);
 		const interval = setInterval(() => {
-			console.log('update progress');
 			fetch(serverUrl + "/api/update_progress", {
 				method: 'POST',
 				headers: {
@@ -57,7 +58,7 @@
 					seasonId: idSelectedSeason,
 					allSeasons: allSeasons,
 					progress: currentTime * 100 / duration,
-					poster: menu.data.tmdb.poster,
+					poster: menu.data.tmdb.poster ? menu.data.tmdb.poster : menu.data.anime.img,
 				})
 			})
 		}, 10000);
@@ -159,9 +160,7 @@
 
 	function putSrc(sourceVideo: string)
 	{
-		if (sourceVideo == '' || sourceVideo == undefined)
-				return;
-		if (sourceVideo.includes('.m3u8'))
+		if (sourceVideo && sourceVideo.includes('.m3u8'))
 		{
 			if (video?.canPlayType('application/vnd.apple.mpegurl'))
 				video?.setAttribute('src', sourceVideo);
@@ -184,12 +183,15 @@
 		}
 		else
 			video?.setAttribute('src', sourceVideo);
+		if (sourceVideo === null)
+			deadSource = true;
 	}
 
 	function changeSource()
 	{
 		if (srcsList.length == 0)
 			return;
+		deadSource = false;
 		fetch(srcsList[selectedSource], {
 			method: 'POST',
 			headers: {
@@ -203,6 +205,11 @@
 		}).catch((error) => {
 			console.error(error);
 		});
+		if (progress.find)
+		{
+			hasAlreadyPlayed = true;
+			buffering = true;
+		}
 	}
 </script>
 
@@ -257,6 +264,12 @@
 					on:loadedmetadata={() => {
 						duration = video.duration;
 						resolution = video.videoWidth + 'x' + video.videoHeight;
+						if (progress.find)
+						{
+							video.currentTime = progress.progress * duration / 100;
+							progress.find = false;
+							hasAlreadyPlayed = true;
+						}
 					}}
 					on:timeupdate={() => {
 						const bar = document.querySelector('.progress') as HTMLElement;
@@ -289,9 +302,13 @@
 				</video>
 			</div>
 		</div>
-		{#if buffering}
+		{#if buffering && !deadSource}
 			<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 999;">
 				<Loader scale={2} />
+			</div>
+		{:else if deadSource}
+			<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 999;">
+				<p style="color: #fff;">Source morte, veuillez en choisir une autre</p>
 			</div>
 		{/if}
 		{#if showOverlay}
@@ -368,11 +385,11 @@
 					on:mousemove={(event) => {
 						const	timer	= document.querySelector('#timer') as HTMLElement;
 						const	bar		= document.querySelector('.progress-bar') as HTMLElement;
-						const	percent	= event.layerX * 100 / bar.offsetWidth;
+						const	x = event.clientX - bar.getBoundingClientRect().left;
+						const	percent = x / bar.offsetWidth * 100;
 
 						timer.style.left = (percent * bar.offsetWidth / 100) + 'px';
 						timer.innerText = secondsToHms(percent * duration / 100);
-						timer.style.transform = 'translateX(-50%)';
 					}}
 				>
 					<div class="progress"></div>

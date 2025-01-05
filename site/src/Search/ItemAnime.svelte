@@ -18,7 +18,7 @@
 				
 				htmlTile.parentNode?.insertBefore(copy, htmlTile);
 				htmlTile.style.position = 'absolute';
-				htmlTile.style.top = pos.top + 'px';
+				htmlTile.style.top = `calc(${pos.top}px - 1rem)`;
 				htmlTile.style.left = pos.left + 'px';
 				htmlTile.style.width = pos.width + 'px';
 				htmlTile.style.height = pos.height + 'px';

@@ -18,27 +18,36 @@
 			genreString?.push(genre); 
 	});
 
-	function changeSeason()
+	function changeSeason(find: boolean)
 	{
 		fetch(serverUrl + '/api/get_anime_episodes', {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json',
-		}, 
-		body: JSON.stringify({url: data.anime.url, season: data.anime.season[idSelectedSeason], serverUrl: serverUrl}),
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			}, 
+			body: JSON.stringify({url: data.anime.url, season: data.anime.season[idSelectedSeason], serverUrl: serverUrl}),
 		}).then((response) => {
 			return response.json();
 		}).then((data) => {
-			selectedEpisode = 0;
+			if (!find)
+				selectedEpisode = 0;
 			nbEpisodes = data.number;
 			listUrlEpisodes = data.episodes;
 			changeEpisode();
-		}).catch((error) => {
+		}).catch(() => {
 			nbEpisodes = 0;
 			listUrlEpisodes = []
 		});
 	}
-	changeSeason();
+
+	if (data.anime.progress.find)
+	{
+		selectedEpisode = data.anime.progress.episode - 1;
+		idSelectedSeason = data.anime.season.findIndex((season: string) => season == data.anime.progress.season);
+		changeSeason(true);
+	}
+	else
+		changeSeason(false);
 
 	function changeEpisode()
 	{
@@ -54,6 +63,7 @@
 			selectedEpisode={selectedEpisode}
 			idSelectedSeason={idSelectedSeason} 
 			allSeasons={data.anime.season}
+			progress={data.anime.progress}
 		/>
 		<div class='description'>
 			<div style="display: flex;">
@@ -77,7 +87,7 @@
 	<div class='tile right-part'>
 		<select id="seasons" on:change={(event) => {
 			idSelectedSeason = parseInt((event.target as HTMLSelectElement).value);
-			changeSeason();
+			changeSeason(false);
 		}}>
 			{#if data.anime.season}
 				{#each data.anime.season as season, index}

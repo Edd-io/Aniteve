@@ -7,6 +7,7 @@
 	const	serverUrl				= 'http://localhost:8080';
 	const	base_url_tmdb			= 'https://image.tmdb.org/t/p/original';
 	const	anime					= menu.data;
+	let		progressData: any		= [];
 	let		imageLoaded				= false;
 	let		backgroundImg			= '';
 	let		logoImg					= '';
@@ -27,6 +28,7 @@
 										fetch: false
 									};
 
+	console.log(anime);
 	anime?.genre?.map((genre: string) => {
 		if (!banGenre.includes(genre.toLowerCase()))
 			genreString?.push(genre); 
@@ -92,7 +94,7 @@
 		dataFromTmdb.overview = animeData.overview;
 		dataFromTmdb.poster = base_url_tmdb + animeData.poster_path
 		dataFromTmdb.popularity = animeData.popularity;
-		dataFromTmdb.note = animeData.vote_average;
+		dataFromTmdb.note = animeData.vote_average.toFixed(2)
 		dataFromTmdb.nbVotes = animeData.vote_count;
 		dataFromTmdb.noData = false;
 
@@ -121,6 +123,27 @@
 		return (data);
 	}
 
+	function get_progress()
+	{
+		return (
+			new Promise((resolve, reject) => {
+				fetch(serverUrl + '/api/get_progress', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify({id: anime.id}),
+				}).then((response) => {
+					return response.json();
+				}).then((data) => {
+					resolve(data);
+				}).catch((error) => {
+					console.warn(error);
+				});
+			})
+		);
+	}
+
 	fetch(serverUrl + '/api/get_anime_season', {
 		method: 'POST',
 		headers: {
@@ -130,7 +153,9 @@
 	}).then((response) => {
 		return response.json();
 	}).then((data) => {
-		console.log(data);
+		get_progress().then((progress) => {
+			progressData = progress;
+		});
 		let season = data.season;
 		let isMovie = false;
 
@@ -229,11 +254,11 @@
 		<div class='bg-button'>
 			<button class="see-button" on:click={() => {
 				menu.data = {
-					anime: {...menu.data, season: allSeasons},
+					anime: {...menu.data, season: allSeasons, progress: progressData},
 					tmdb: dataFromTmdb
 				}
 				menu.selected = 4;
-			}}>Regarder</button>
+			}}>{progressData.find ? "Reprendre" : "Regarder"}</button>
 		</div>
 	{:else}
 		<div class="center">

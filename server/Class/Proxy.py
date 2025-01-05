@@ -4,7 +4,6 @@ from flask import Response, request
 SERVER_PROXY_URL = 'http://192.168.1.172:8080'
 
 class Proxy:
-	
 	@staticmethod
 	def sibnet(url):
 		referer = url.split('|')
@@ -18,7 +17,7 @@ class Proxy:
 		}
 		if 'Range' in request.headers:
 			headers['Range'] = request.headers['Range']
-		response = requests.get(url, headers=headers, stream=True)
+		response = requests.get(url, headers=headers, stream=True, timeout=10)
 		return Response(
 			response.iter_content(chunk_size=1024),
 			content_type=response.headers.get('Content-Type', 'application/octet-stream'),
