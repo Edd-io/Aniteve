@@ -18,8 +18,6 @@
 			genreString?.push(genre); 
 	});
 
-	console.log(data);
-
 	function changeSeason()
 	{
 		fetch(serverUrl + '/api/get_anime_episodes', {
@@ -31,6 +29,7 @@
 		}).then((response) => {
 			return response.json();
 		}).then((data) => {
+			selectedEpisode = 0;
 			nbEpisodes = data.number;
 			listUrlEpisodes = data.episodes;
 			changeEpisode();
@@ -50,7 +49,12 @@
 
 <main>
 	<div class='tile left-part'>
-		<VideoOverlay srcs={listSource} bind:menu={menu} />
+		<VideoOverlay srcs={listSource}
+			bind:menu={menu}
+			selectedEpisode={selectedEpisode}
+			idSelectedSeason={idSelectedSeason} 
+			allSeasons={data.anime.season}
+		/>
 		<div class='description'>
 			<div style="display: flex;">
 				{#if data.tmdb.poster != '' && !data.tmdb.noData}

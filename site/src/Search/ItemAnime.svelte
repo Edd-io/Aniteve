@@ -78,11 +78,11 @@
 		box-shadow: 0 0 5px #0000003b;
 	}
 	.tile-hover:hover {
-		background-color: #555;
+		background-color: #c7c7c7af;
 		scale: 1.05;
 	}
 	.tile-hover-selected {
-		background-color: #555;
+		background-color: #c7c7c7af;
 		scale: 1.05;
 		cursor: default;
 	}

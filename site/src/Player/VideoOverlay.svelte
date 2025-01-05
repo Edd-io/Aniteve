@@ -1,10 +1,14 @@
 <script lang='ts'>
 	import '@fortawesome/fontawesome-free/css/all.css';
+	import { onDestroy } from 'svelte';
 	import { onMount } from 'svelte';
 	import Loader from '../Global/Loader.svelte';
 
 	export let srcs: any;
 	export let menu: any;
+	export let selectedEpisode: number;
+	export let idSelectedSeason: number;
+	export let allSeasons: any;
 
 	const	serverUrl					= 'http://localhost:8080';
 
@@ -35,15 +39,62 @@
 		video = document.querySelector('video');
 		srcs.subscribe((value: any) => {
 			srcsList = value;
-			changeSource();
+			resetVariables();
 		});
 		document.addEventListener("keydown", handleKeydown);
 		document.addEventListener('fullscreenchange', handleFullscreen);
+		const interval = setInterval(() => {
+			console.log('update progress');
+			fetch(serverUrl + "/api/update_progress", {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					id: menu.data.anime.id,
+					episode: selectedEpisode + 1,
+					totalEpisode: srcsList.length,
+					seasonId: idSelectedSeason,
+					allSeasons: allSeasons,
+					progress: currentTime * 100 / duration,
+					poster: menu.data.tmdb.poster,
+				})
+			})
+		}, 10000);
 		return (() => {
+			clearInterval(interval);
 			window.removeEventListener("keydown", handleKeydown);
 			document.removeEventListener('fullscreenchange', handleFullscreen);
 		});
 	});
+
+
+	onDestroy(() => {
+		video.pause();
+		video.removeAttribute('src');
+		video.load();
+		document.removeEventListener("keydown", handleKeydown);
+		document.removeEventListener('fullscreenchange', handleFullscreen);
+	});
+
+	function resetVariables()
+	{
+		hasAlreadyPlayed = false;
+		selectedSource = 0;
+		currentTime = 0;
+		lastCurrentTime = 0;
+		duration = 0;
+		buffering = false;
+		muted = false;
+		showTimerOnProgress = false;
+		resolution = '';
+		showSettings = false;
+		showSourceSettings = false;
+		animationSettings = false;
+		animationOverlay = false;
+		showOverlay = false;
+		changeSource();
+	}
 
 	function handleFullscreen()
 	{
@@ -59,6 +110,7 @@
 
 		if (event.key == ' ')
 		{
+			event.preventDefault();
 			if (video.paused)
 				video.play();
 			else
@@ -215,9 +267,13 @@
 							lastCurrentTime = currentTime;
 					}}
 					on:loadstart={() => {
-						video.currentTime = lastCurrentTime;
 						if (hasAlreadyPlayed)
+						{
 							video.play();
+							video.currentTime = lastCurrentTime;
+						}
+						else
+							video.currentTime = 0;
 					}}
 					on:loadeddata={() => buffering = false}
 					on:waiting={() => buffering = true}
@@ -228,6 +284,7 @@
 						else
 							video.pause();
 					}}
+					preload="auto"
 				>
 				</video>
 			</div>

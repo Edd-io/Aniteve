@@ -2,12 +2,12 @@
 	import Home from './Home/Home.svelte';
 	import Anime from './Anime/Anime.svelte';
 	import Player from './Player/Player.svelte';
-
+	import Search from './Search/Search.svelte';
 	let menu: any = {
 		selected: 0 as number,
 		data: {} as any,
-		dominantColor: '' as string
-	}; // 0: home, 1: resume, 2: settings, 3: anime, 4: player	
+		dominantColor: '' as string,
+	}; // 0: home, 1: search, 2:resume, 3: anime, 4: player, 5: settings
 </script>
 
 
@@ -18,8 +18,11 @@
 			<img src="../assets/img/home.png" alt="home" />
 		</button>
 		<button on:click={() => menu.selected = 1} class='no-style-button {menu.selected === 1 ? "selected" : ""} space'>
-			<img src="../assets/img/resume.png" alt="resume" />
+			<img src="../assets/img/search.png" alt="resume" />
 		</button>
+		<!-- <button on:click={() => menu.selected = 1} class='no-style-button {menu.selected === 1 ? "selected" : ""} space'>
+			<img src="../assets/img/resume.png" alt="resume" />
+		</button> -->
 		<button on:click={() => menu.selected = 2} class='no-style-button {menu.selected === 2 ? "selected" : ""} space' style="margin-top: auto;">
 			<img src="../assets/img/settings.png" alt="settings" />
 		</button>
@@ -27,6 +30,8 @@
 	<div id="content">
 		{#if menu.selected === 0}
 			<Home bind:menu={menu} />
+		{:else if menu.selected === 1}
+			<Search bind:menu={menu} />
 		<!-- {:else if selectedMenu === 1}
 			<Resume />
 		{:else if selectedMenu === 2}

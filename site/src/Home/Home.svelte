@@ -1,114 +1,221 @@
 <script lang="ts">
-	import ItemAnime from "./ItemAnime.svelte";
+	import '@fortawesome/fontawesome-free/css/all.css';
+	import { onMount } from 'svelte';
 
 	export let menu: any;
 
-	let animeList: any = [];
-	let showedAnimeList: any = [];
-	let animeSelected: any = {bool: false, id: 0};
-	let counter: number = 0;
+	const	serverUrl				= 'http://localhost:8080';
+	let		progressData: any		= [];
 
 	menu.dominantColor = '#c7c7c75c';
-	fetch('http://localhost:8080/api/get_all_anime')
-	.then(res => res.json())
-	.then(data => {
-		animeList = data;
-		showedAnimeList = animeList;
-	})
-	.catch(err => console.error(err));
 
-	function filterList()
+	onMount(() => {
+		getDataProgress();
+	});
+
+	function getDataProgress()
 	{
-		const searchInput = document.querySelector('input');
-		const searchValue = searchInput?.value.toLowerCase();
-
-		if (!searchValue)
-			showedAnimeList = animeList;
-		else
-		{
-			showedAnimeList = [];
-			for (let i = 0; i < animeList.length; i++)
-			{
-				if (animeList[i].title.toLowerCase().includes(searchValue))
-					showedAnimeList.push(animeList[i]);
-				else if (animeList[i].alternative_title?.toLowerCase().includes(searchValue))
-					showedAnimeList.push(animeList[i]);
-				else
-					continue
-			}
-			counter++;
-		}	
+		fetch(serverUrl + '/api/get_all_progress')
+		.then((response) => {
+			return (response.json());
+		})
+		.then((json) => {
+			progressData = json;
+		})
+		.catch((error) => {
+			console.warn(error);
+		});
 	}
+
+
 </script>
 
 <main>
-	
-		<div class="top-bar">
-			<div class="search-input">
-				<img src="../assets/img/search.png" alt="search" />
-				<input type="text" placeholder="Rechercher un anime..." on:input={filterList} />
+	<div class='part'>
+		<div class='title-div'>
+			<h1 class='title'>Reprendre (10 derniers animes en cours)</h1>
+			<div style="margin-left: auto; display: flex;">
+				<button class='arrow-div arrow-left' aria-label="Previous" on:click={() => {
+					document.querySelector('#list-anime-div-resume').scrollBy(-100, 0);
+				}}>
+					<i class='fas fa-arrow-left'></i>
+				</button>
+				<button class='arrow-div arrow-right' aria-label="Next" style="margin-left: 0.5rem;" on:click={() => {
+					document.querySelector('#list-anime-div-resume').scrollBy(100, 0);
+				}}>
+					<i class='fas fa-arrow-right'></i>
+				</button>
 			</div>
 		</div>
-		{#if showedAnimeList.length > 0}
-			{#key counter}
-				<div class="anime-list">
-					{#each showedAnimeList as anime (anime.id)}
-						<ItemAnime animeData={anime} bind:animeSelected={animeSelected} bind:menu={menu} />
+		<div class='list-anime-div' id='list-anime-div-resume'>
+				{#if progressData.length > 0}
+					{#each progressData as animeData, index}
+						{#if index < 10 && (animeData.completed === 0 || animeData.completed === 2)}
+							<div class='anime-div'>
+								<div class='img-container'>
+									<img src={animeData.poster} alt={animeData.title} />
+									<div class='progress-bar' style='width: {animeData.progress}%'></div>
+									{#if animeData.completed === 2}
+										<div class='new-episode'>Nouvel épisode</div>
+									{/if}
+								</div>
+								<h2>{animeData.anime.title.length > 30 ? animeData.anime.title.substring(0, 30) + '...' : animeData.anime.title}</h2>
+								<p>Episode {animeData.episode} {animeData.season.split('/')[0]}</p>
+							</div>
+						{/if}
 					{/each}
-				</div>
-			{/key}
-		{/if}
+				{:else}
+					<p>Aucun anime en cours</p>
+				{/if}
+		</div>
+	</div>
+	<div class='part'>
+		<div class='title-div'>
+			<h1 class='title'>Nouvelle saison (10 dernières nouvelles saisons)</h1>
+			<div style="margin-left: auto; display: flex;">
+				<button class='arrow-div arrow-left' aria-label="Previous" on:click={() => {
+					document.querySelector('#list-anime-div-season').scrollBy(-100, 0);
+				}}>
+					<i class='fas fa-arrow-left'></i>
+				</button>
+				<button class='arrow-div arrow-right' aria-label="Next" style="margin-left: 0.5rem;" on:click={() => {
+					document.querySelector('#list-anime-div-season').scrollBy(100, 0);
+				}}>
+					<i class='fas fa-arrow-right'></i>
+				</button>
+			</div>
+		</div>
+		<div class='list-anime-div' id='list-anime-div-season'>
+				{#if progressData.length > 0}
+					{#each progressData as animeData, index}
+						{#if index < 10 && animeData.completed === 3}
+							<div class='anime-div'>
+								<div class='img-container'>
+									<img src={animeData.poster} alt={animeData.title} />
+									<div class='progress-bar' style='width: {animeData.progress}%'></div>
+								</div>
+								<h2>{animeData.anime.title.length > 30 ? animeData.anime.title.substring(0, 30) + '...' : animeData.anime.title}</h2>
+								<p>Episode {animeData.episode} {animeData.season.split('/')[0]}</p>
+							</div>
+						{/if}
+					{/each}
+				{:else}
+					<p>Aucun anime en cours</p>
+				{/if}
+		</div>
+	</div>
 </main>
 
 <style>
 	main {
 		flex: 1;
 		height: 100%;
+		color: white;
+		padding: 1rem;
+		overflow: scroll;
 	}
-	.top-bar {
-		width: 100%;
-		height: 2.5rem;
+	.part {
+		display: flex;
+		flex-direction: column;
 	}
-	.top-bar .search-input {
+	.title-div {
+		padding-inline: 1rem;
+		padding-block: 0.3rem;
+		background-color: #c7c7c75c;
 		border-radius: 0.5rem;
 		display: flex;
 		align-items: center;
-		padding: 0 10px;
-		height: 90%;
-		width: 97%;
-		margin-inline: auto;
+	}
+	.title-div h1 {
+		font-size: 0.8rem;
+	}
+	.list-anime-div {
+		display: flex;
+		overflow-x: scroll;
+		flex-direction: row;
+		width: 100%;
+		scroll-behavior: smooth;
+	}
+	.list-anime-div::-webkit-scrollbar {
+		display: none;
+	}
+	.anime-div {
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		margin: 1rem;
 		background-color: #c7c7c75c;
-		border: 1px solid #c7c7c72b;
-		box-shadow: 0 0 5px #0000003b;
-		color: #fff;
+		border-radius: 0.5rem;
+		padding: 0.5rem;
+		width: 8rem;
+		height: 15rem;
+		min-width: 8rem;
+		text-align: center;
+		transition: background-color 0.5s, transform 0.5s;
 	}
-
-	.top-bar .search-input input::placeholder {
-		color: rgb(159, 159, 159);
+	.anime-div:hover {
+		background-color: #c7c7c7af;
+		transform: scale(1.05);
 	}
-	.top-bar .search-input img {
-		height: 75%;
-		margin-block: auto;
-		margin-right: 0.5rem;
+	.anime-div .img-container {
+		width: 100%;
+		height: 11rem;
+		margin-bottom: 0.5rem;
+		border-radius: 0.5rem;
+		position: relative;
+		overflow: hidden;
 	}
-	.top-bar .search-input input {
-		background-color: transparent;
-		border: none;
-		color: #fff;
+	.anime-div .img-container img {
 		width: 100%;
 		height: 100%;
+		object-fit: cover;
+		border-radius: 0.5rem;
 	}
-	.top-bar .search-input input:focus {
-		outline: none;
+	.anime-div .progress-bar {
+		background-color: #394ae6;
+		height: 0.5rem;
+		position: absolute;
+		bottom: 0;
+		left: 0;
+		box-shadow: 0 0 5px #000000bb;
 	}
-	.anime-list {
-		overflow-y: scroll;
+	.anime-div h2{
+		font-size: 0.8rem;
+	} 
+	.anime-div p {
 		width: 100%;
-		max-height: calc(100% - 3.5rem);
-		margin-block: 0.5rem;
+		font-size: 0.6rem;
+		position: absolute;
+		bottom: 0.2rem;
+		left: 50%;
+		transform: translateX(-50%);
+		color: #ccc;
+	} 
+	.arrow-div {
+		cursor: pointer;
+		background-color: #c7c7c7;
+		border-radius: 0.3rem;
+		border: none;
+		font-size: 1.5rem;
 		display: flex;
-		flex-direction: row;
-		flex-wrap: wrap;
+		align-items: center;
 		justify-content: center;
+		width: 1.3rem;
+		height: 1.3rem;
+		z-index: 5;
+		transition: background-color 0.3s;
+	}
+	.arrow-div:hover {
+		background-color: #c7c7c7af;
+	}
+	.new-episode {
+		position: absolute;
+		top: 0;
+		left: 0;
+		background-color: #3244e9;
+		color: white;
+		padding: 0.2rem;
+		border-end-end-radius: 0.5rem;
+		font-size: 0.6rem;
 	}
 </style>
