@@ -11,6 +11,9 @@
 		getDataProgress();
 	});
 
+	menu.dominantColor = '#c7c7c75c';
+	menu.selected = 2;
+
 	function getDataProgress()
 	{
 		fetch(serverUrl + '/api/get_all_progress')
@@ -89,6 +92,7 @@
 				</div>
 			</button>
 		{/each}
+	</div>
 </main>
 
 <style>

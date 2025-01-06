@@ -1,4 +1,5 @@
 <script lang='ts'>
+	import { navigate } from 'svelte-routing';
 	export let animeData: any = [];
 	export let animeSelected: any = {bool: false, id: 0};
 	export let menu: any;
@@ -29,6 +30,7 @@
 					setTimeout(() => {
 						menu.data = animeData;
 						menu.selected = 3;
+						navigate('/anime', {replace: true});
 					}, 400);
 				}, 500);
 				return;

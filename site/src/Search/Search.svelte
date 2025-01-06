@@ -9,6 +9,7 @@
 	let counter: number = 0;
 
 	menu.dominantColor = '#c7c7c75c';
+	menu.selected = 1;
 	fetch('http://localhost:8080/api/get_all_anime')
 	.then(res => res.json())
 	.then(data => {

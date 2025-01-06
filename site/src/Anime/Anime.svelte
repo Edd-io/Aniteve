@@ -1,4 +1,5 @@
 <script lang='ts'>
+	import { navigate } from 'svelte-routing';
 	import Loader from "../Global/Loader.svelte";
 
 	export	let		menu: any;
@@ -261,6 +262,7 @@
 				animation = false;
 				setTimeout(() => {
 					menu.selected = 4;
+					navigate('/player', {replace: true});
 				}, 500);
 			}}>{progressData.find ? "Reprendre" : "Regarder"}</button>
 		</div>

@@ -1,5 +1,8 @@
 <script lang='ts'>
+	export let menu: any;
 
+	menu.dominantColor = '#c7c7c75c';
+	menu.selected = 6;
 </script>
 
 <main>

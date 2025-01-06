@@ -69,7 +69,6 @@
 		});
 	});
 
-
 	onDestroy(() => {
 		video.pause();
 		video.removeAttribute('src');
@@ -211,6 +210,17 @@
 			buffering = true;
 		}
 	}
+
+	function addNewDownload()
+	{
+		menu.downloader.addNewDownload({
+			poster: menu.data.tmdb.poster ? menu.data.tmdb.poster : menu.data.anime.img,
+			episode: selectedEpisode + 1,
+			season: allSeasons[idSelectedSeason],
+			src: video.src,
+			title: menu.data.anime.title,
+		});
+	}
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -246,7 +256,6 @@
 			fullscreen = true;
 		}
 	}}
-	
 >
 	<div style="background-color: #000; overflow: scroll; border-radius: 0.5rem 0.5rem 0 0; position: relative; {fullscreen ? 'height: 100%;' : ''}">
 		<div style="{fullscreen ? "width: 100%; heigth: 100%;" : "max-width: 80rem"}; margin: 0 auto;">
@@ -353,7 +362,9 @@
 								<div style="margin: auto;"></div>
 								<i class="fas fa-arrow-right" style='font-size: 0.8rem;'></i>
 							</button>
-							<button class="line no-style-button">
+							<button class="line no-style-button" on:click={() => {
+								confirm('Voulez-vous vraiment télécharger cet épisode ?') ? addNewDownload() : null;
+							}}>
 								<i class="fa-solid fa-file-arrow-down"></i>
 								<p>Télécharger</p>
 								<div style="margin: auto;"></div>

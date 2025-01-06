@@ -1,6 +1,7 @@
 <script lang="ts">
 	import '@fortawesome/fontawesome-free/css/all.css';
 	import { onMount } from 'svelte';
+	import { navigate } from 'svelte-routing';
 
 	export let menu: any;
 
@@ -11,7 +12,7 @@
 	let		buttonActive			= false;
 
 	menu.dominantColor = '#c7c7c75c';
-
+	menu.selected = 0;
 	onMount(() => {
 		getDataProgress();
 	});
@@ -67,6 +68,7 @@
 			setTimeout(() => {
 				animeResumed.remove();
 				menu.selected = 3;
+				navigate('/anime', {replace: true});
 			}, 400);
 		}, 500);
 	}

@@ -1,58 +1,66 @@
 <script lang="ts">
-	import { Router, Link, Route } from "svelte-routing";
+	import { Router, Route, navigate } from "svelte-routing";
+
 	import Home from './Home/Home.svelte';
 	import Anime from './Anime/Anime.svelte';
 	import Player from './Player/Player.svelte';
 	import Search from './Search/Search.svelte';
 	import List from './List/List.svelte';
 	import Downlaod from './Download/Download.svelte';
+	import LeftBar from "./Global/LeftBar.svelte";
+	import downloader from "./Global/Downloader";
+
+	const cantDirectAccess = ['/anime', '/player'];
+	const location = window.location.pathname;
+
 	let menu: any = {
 		selected: 0 as number,
 		data: {} as any,
 		dominantColor: '' as string,
-	}; // 0: home, 1: search, 2:resume, 3: anime, 4: player, 5: list, 6: Download
+		downloader: downloader,
+	}; // 0: home, 1: search,  2: list, 3: anime, 4: player, 6: Download
+
+	window.onpopstate = function(event)
+	{
+		const location = window.location.pathname;
+		if (cantDirectAccess.includes(location))
+			navigate('/');
+	}
+
+	window.onload = function()
+	{
+		if (cantDirectAccess.includes(location))
+			navigate('/');
+		else
+			history.pushState(null, 'Anime', location);
+	}
 </script>
 
 
 <main>
-	<div id="left-bar" style="background-color: {menu.dominantColor}; border: 1px solid #c7c7c72b;box-shadow: 0 0 5px #0000003b; {menu.selected !== 3 ? 'border-radius: 0.5rem;' : ''}">
-		<h1 id="logo">Logo</h1>
-		<button on:click={() => menu.selected = 0} class='no-style-button {menu.selected === 0 ? "selected" : ""} space'>
-			<img src="../assets/img/home.png" alt="home" />
-		</button>
-		<button on:click={() => menu.selected = 1} class='no-style-button {menu.selected === 1 ? "selected" : ""} space'>
-			<img src="../assets/img/search.png" alt="search" />
-		</button>
-		<button on:click={() => menu.selected = 5} class='no-style-button {menu.selected === 5 ? "selected" : ""} space'>
-			<img src="../assets/img/resume.png" alt="list" />
-		</button>
-		<button on:click={() => menu.selected = 6} class='no-style-button {menu.selected === 6 ? "selected" : ""} space'>
-			<img src="../assets/img/download.png" alt="download" />
-		</button>
-		<!-- <button on:click={() => menu.selected = 2} class='no-style-button {menu.selected === 2 ? "selected" : ""} space' style="margin-top: auto;">
-			<img src="../assets/img/settings.png" alt="settings" />
-		</button> -->
-	</div>
-	<div id="content">
-		{#if menu.selected === 0}
-			<Home bind:menu={menu} />
-		{:else if menu.selected === 1}
-			<Search bind:menu={menu} />
-		<!-- {:else if selectedMenu === 1}
-			<Resume />
-		{:else if selectedMenu === 2}
-			<Settings /> -->
-		{:else if menu.selected === 3}
-			<Anime bind:menu={menu} />
-		{:else if menu.selected === 4}
-			<Player bind:menu={menu} />
-		{:else if menu.selected === 5}
-			<List bind:menu={menu} />
-		{:else if menu.selected === 6}
-			<Downlaod bind:menu={menu} />
-		{/if}
-
-	</div>
+	<Router>
+		<LeftBar bind:menu={menu} />
+		<div id="content">
+			<Route path="/" let:location>
+				<Home bind:menu={menu} />
+			</Route>
+			<Route path="/search" let:location>
+				<Search bind:menu={menu} />
+			</Route>
+			<Route path="/anime" let:location>
+				<Anime bind:menu={menu} />
+			</Route>
+			<Route path="/player" let:location>
+				<Player bind:menu={menu} />
+			</Route>
+			<Route path="/list" let:location>
+				<List bind:menu={menu} />
+			</Route>
+			<Route path="/download" let:location>
+				<Downlaod bind:menu={menu} />
+			</Route>
+		</div>
+	</Router>
 </main>
 
 <style>
@@ -63,39 +71,6 @@
 		padding: 1rem;
 		position: relative;
 		font-family: 'Roboto', sans-serif;
-	}
-	.no-style-button {
-		background-color: transparent;
-		border: none;
-		cursor: pointer;
-		padding: 0.4rem;
-		display: flex;
-		align-items: center;
-	}
-	#left-bar {
-		width: 80px;
-		height: 100%;
-		border-radius: 0.5rem 0 0 0.5rem;
-		position: relative;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		transition: background-color 0.5s;
-	}
-	#left-bar #logo {
-		color: #fff;
-		font-size: 1rem;
-		margin-block: 1.5rem;
-	}
-	#left-bar img {
-		width: 1.8rem;
-	}
-	#left-bar .selected {
-		background-color: #555;
-		border-radius: 0.4rem;
-	}
-	#left-bar .space {
-		margin-block: 0.5rem;
 	}
 	#content {
 		flex: 1;
