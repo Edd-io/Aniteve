@@ -8,6 +8,7 @@
 	let		progressData: any		= [];
 	let		nbAnimeResume			= 0;
 	let		nbAnimeSeason			= 0;
+	let		buttonActive			= false;
 
 	menu.dominantColor = '#c7c7c75c';
 
@@ -22,7 +23,6 @@
 			return (response.json());
 		})
 		.then((json) => {
-			console.log(json);
 			progressData = json;
 			nbAnimeResume = progressData.filter((animeData: any) => animeData.completed === 0 || animeData.completed === 2).length;
 			nbAnimeSeason = progressData.filter((animeData: any) => animeData.completed === 3).length;
@@ -34,6 +34,9 @@
 
 	function hideAll(id: string, data: any)
 	{
+		if (buttonActive)
+			return;
+		buttonActive = true;
 		const animeResumed = document.querySelector('#' + id) as HTMLElement;
 		const copy = animeResumed.cloneNode(true) as HTMLElement;
 		const pos = animeResumed.getBoundingClientRect();
@@ -68,14 +71,13 @@
 		}, 500);
 	}
 
-
 </script>
 
 <main>
 	{#if nbAnimeResume > 0}
 		<div class='part'>
 			<div class='title-div'>
-				<h1 class='title'>Reprendre (10 derniers animes en cours)</h1>
+				<h1>Reprendre / Nouveaux épisodes</h1>
 				<div style="margin-left: auto; display: flex;">
 					<button class='arrow-div arrow-left' aria-label="Previous" on:click={() => {
 						document.querySelector('#list-anime-div-resume').scrollBy(-100, 0);
@@ -91,8 +93,8 @@
 			</div>
 			<div class='list-anime-div' id='list-anime-div-resume'>
 				{#if progressData.length > 0}
-					{#each progressData as animeData, index}
-						{#if index < 10 && (animeData.completed === 0 || animeData.completed === 2)}
+					{#each progressData as animeData}
+						{#if (animeData.completed === 0 || animeData.completed === 2)}
 							<button class='anime-div' id={'anime' + animeData.anime.id} on:click={() => {
 								hideAll('anime' + animeData.anime.id, animeData.anime);
 							}}>
@@ -115,7 +117,7 @@
 	{#if nbAnimeSeason > 0}
 		<div class='part'>
 			<div class='title-div'>
-				<h1 class='title'>Nouvelle saison (10 dernières nouvelles saisons)</h1>
+				<h1 class='title'>Nouvelles saisons</h1>
 				<div style="margin-left: auto; display: flex;">
 					<button class='arrow-div arrow-left' aria-label="Previous" on:click={() => {
 						document.querySelector('#list-anime-div-season').scrollBy(-100, 0);
@@ -131,9 +133,11 @@
 			</div>
 			<div class='list-anime-div' id='list-anime-div-season'>
 					{#if progressData.length > 0}
-						{#each progressData as animeData, index}
-							{#if index < 10 && animeData.completed === 3}
-								<button class='anime-div'>
+						{#each progressData as animeData}
+							{#if animeData.completed === 3}
+								<button class='anime-div' id={'anime' + animeData.anime.id} on:click={() => {
+									hideAll('anime' + animeData.anime.id, animeData.anime);
+								}}>
 									<div class='img-container'>
 										<img src={animeData.poster} alt={animeData.title} />
 										<div class='progress-bar' style='width: {animeData.progress}%'></div>
@@ -143,8 +147,6 @@
 								</button>
 							{/if}
 						{/each}
-					{:else}
-						<p>Aucun anime en cours</p>
 					{/if}
 			</div>
 		</div>

@@ -51,12 +51,11 @@
 
 	function changeEpisode()
 	{
-		console.log('changeEpisode');
 		listSource.update(() => listUrlEpisodes['eps' + (selectedEpisode + 1)]);
 	}
 </script>
 
-<main>
+<main class='show-main'>
 	<div class='tile left-part'>
 		<VideoOverlay srcs={listSource}
 			bind:menu={menu}
@@ -205,5 +204,8 @@
 		background-color: #0000003b;
 		border-radius: 0.5rem;
 		overflow: scroll;
+	}
+	.show-main {
+		animation: fadeIn 0.5s;
 	}
 </style>

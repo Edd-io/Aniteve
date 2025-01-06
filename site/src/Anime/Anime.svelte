@@ -27,6 +27,7 @@
 										noData: false,
 										fetch: false
 									};
+	let		animation				= true;
 
 	console.log(anime);
 	anime?.genre?.map((genre: string) => {
@@ -210,19 +211,19 @@
 	}
 </script>
 
-<main>
+<main class='{animation ? "" : "animation-hide"}'>
 	<div class='bg-container'>
 		<div class="linear-gradient"></div>
 		<img
 			src={anime.img}
 			alt={menu.data.title}
-			class='{imageLoaded && !dataFromTmdb.noData ? "hideBg" : "bg"}'
+			class='{imageLoaded && !dataFromTmdb.noData ? "hideBg" : "bg"} {animation ? "animation-show" : ""}'
 			style='z-index: 2;'
 		/>
 		<img
 			src={backgroundImg}
 			alt={menu.data.title}
-			class='bg'
+			class='bg {animation ? "animation-show" : ""}'
 			on:load={() => {imageLoaded = true}}
 		/>
 	</div>
@@ -257,7 +258,10 @@
 					anime: {...menu.data, season: allSeasons, progress: progressData},
 					tmdb: dataFromTmdb
 				}
-				menu.selected = 4;
+				animation = false;
+				setTimeout(() => {
+					menu.selected = 4;
+				}, 500);
 			}}>{progressData.find ? "Reprendre" : "Regarder"}</button>
 		</div>
 	{:else}
@@ -305,7 +309,12 @@
 		top: 0;
 		left: 0;
 		opacity: 1;
+	}
+	.animation-show {
 		animation: showBgAnime 0.5s;
+	}
+	.animation-hide {
+		animation: hide-main 0.5s;
 	}
 	.hideBg {
 		width: 100%;
@@ -390,7 +399,6 @@
 		border-radius: 0.5rem;
 		cursor: pointer;
 	}
-
 	.bg-button {
 		position: absolute;
 		bottom: 2rem;
@@ -402,7 +410,6 @@
 		animation: rotate-colors 3s linear infinite;
 		background-size: 300%;
 	}
-
 	@keyframes rotate-colors {
 		0% {
 			background-position: 0% 50%;
@@ -414,4 +421,15 @@
 			background-position: 0% 50%;
 		}
 	}
+	@keyframes hide-main {
+		0% {
+			opacity: 1;
+			transform: translateX(0%);
+		}
+		100% {
+			opacity: 0;
+			transform: translateX(-10%);
+		}
+	}
+
 </style>

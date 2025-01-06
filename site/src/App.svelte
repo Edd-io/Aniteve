@@ -1,13 +1,16 @@
 <script lang="ts">
+	import { Router, Link, Route } from "svelte-routing";
 	import Home from './Home/Home.svelte';
 	import Anime from './Anime/Anime.svelte';
 	import Player from './Player/Player.svelte';
 	import Search from './Search/Search.svelte';
+	import List from './List/List.svelte';
+	import Downlaod from './Download/Download.svelte';
 	let menu: any = {
 		selected: 0 as number,
 		data: {} as any,
 		dominantColor: '' as string,
-	}; // 0: home, 1: search, 2:resume, 3: anime, 4: player, 5: settings
+	}; // 0: home, 1: search, 2:resume, 3: anime, 4: player, 5: list, 6: Download
 </script>
 
 
@@ -18,14 +21,17 @@
 			<img src="../assets/img/home.png" alt="home" />
 		</button>
 		<button on:click={() => menu.selected = 1} class='no-style-button {menu.selected === 1 ? "selected" : ""} space'>
-			<img src="../assets/img/search.png" alt="resume" />
+			<img src="../assets/img/search.png" alt="search" />
 		</button>
-		<!-- <button on:click={() => menu.selected = 1} class='no-style-button {menu.selected === 1 ? "selected" : ""} space'>
-			<img src="../assets/img/resume.png" alt="resume" />
-		</button> -->
-		<button on:click={() => menu.selected = 2} class='no-style-button {menu.selected === 2 ? "selected" : ""} space' style="margin-top: auto;">
+		<button on:click={() => menu.selected = 5} class='no-style-button {menu.selected === 5 ? "selected" : ""} space'>
+			<img src="../assets/img/resume.png" alt="list" />
+		</button>
+		<button on:click={() => menu.selected = 6} class='no-style-button {menu.selected === 6 ? "selected" : ""} space'>
+			<img src="../assets/img/download.png" alt="download" />
+		</button>
+		<!-- <button on:click={() => menu.selected = 2} class='no-style-button {menu.selected === 2 ? "selected" : ""} space' style="margin-top: auto;">
 			<img src="../assets/img/settings.png" alt="settings" />
-		</button>
+		</button> -->
 	</div>
 	<div id="content">
 		{#if menu.selected === 0}
@@ -40,7 +46,12 @@
 			<Anime bind:menu={menu} />
 		{:else if menu.selected === 4}
 			<Player bind:menu={menu} />
+		{:else if menu.selected === 5}
+			<List bind:menu={menu} />
+		{:else if menu.selected === 6}
+			<Downlaod bind:menu={menu} />
 		{/if}
+
 	</div>
 </main>
 
