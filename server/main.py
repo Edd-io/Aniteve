@@ -2,6 +2,7 @@ from flask import Flask, request, Response
 from Class.Database import Database
 from Class.AnimeSama import AnimeSama
 from Class.Proxy import Proxy
+from Class.Downloader import Downloader
 import ast
 import json
 import requests
@@ -14,6 +15,7 @@ from io import BytesIO
 db = Database()
 site = AnimeSama(db)
 app = Flask(__name__)
+download = Downloader()
 CORS(app)
 
 @app.route('/api/get_all_anime')
@@ -213,15 +215,29 @@ def get_average_color():
 		pixels = list(image.getdata())
 		total_pixels = len(pixels)
 		avg_color = tuple(sum(channel) // total_pixels for channel in zip(*pixels))
-		return Response(
+		return (Response(
 			response=json.dumps({'average_color': avg_color}),
 			status=200,
 			mimetype='application/json',
 			headers={'Access-Control-Allow-Origin': '*'}
-		)
+		))
 	except Exception as e:
-		return {'error': str(e)}
+		return ({'error': str(e)})
 
+
+@app.route('/api/download', methods=['POST'])
+def download_func():
+	need_keys = ['src', 'name', 'episode', 'season', 'serverUrl', 'id']
+	data = request.get_json()
+
+	# try:
+	for key in need_keys:
+		if key not in data:
+			return {'error': 'Missing key ' + key}
+	download.add(data)
+	return ({'status': 'success'})
+	# except Exception as e:
+	# 	return {'error': str(e)}
 
 if __name__ == '__main__':
 	app.run(debug=False, port=8080, host='0.0.0.0')

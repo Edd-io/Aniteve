@@ -213,13 +213,26 @@
 
 	function addNewDownload()
 	{
-		menu.downloader.addNewDownload({
-			poster: menu.data.tmdb.poster ? menu.data.tmdb.poster : menu.data.anime.img,
-			episode: selectedEpisode + 1,
-			season: allSeasons[idSelectedSeason],
-			src: video.src,
-			title: menu.data.anime.title,
-		});
+		fetch(serverUrl + "/api/download", {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({
+				src: video.src,
+				name: menu.data.anime.title,
+				episode: selectedEpisode + 1,
+				season: allSeasons[idSelectedSeason],
+				serverUrl: serverUrl,
+				id: menu.data.anime.id,
+			})
+		}).then((response) => {
+			return response.json();
+		}).then((data) => {
+			console.log(data);
+		}).catch((error) => {
+			console.error(error);
+		})
 	}
 </script>
 
