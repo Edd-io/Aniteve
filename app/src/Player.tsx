@@ -69,10 +69,13 @@ const PlayerScreen = () => {
 
 	const [sendRequest, setSendRequest] = useState<boolean>(false);
 
+	let		timeout: any = null;
 	useEffect(() => {
 		const	pourcent = (currentTime / totalTime) * 100;
 
-		setTimeout(() => {
+		if (timeout)
+			clearTimeout(timeout)
+		timeout = setTimeout(() => {
 			if (pourcent && !hasError && !isPaused && stateData.listUrlEpisodes !== undefined)
 			{
 				fetch(localData.addr + "/api/update_progress", {
@@ -82,7 +85,7 @@ const PlayerScreen = () => {
 					},
 					body: JSON.stringify({
 						id: stateData.back.id,
-						episode: stateData.episode,
+						episode: newValueEpisode,
 						totalEpisode: Object.keys(stateData.listUrlEpisodes).length,
 						seasonId: stateData.selectedSeasons,
 						allSeasons: stateData.season,
@@ -100,8 +103,9 @@ const PlayerScreen = () => {
 			}
 			else
 				setSendRequest(!sendRequest);
+			timeout = null;
 		}, 10000);
-	}, [sendRequest]);
+	}, [sendRequest, newValueEpisode]);
 
 	useEffect(() => {
 		if (newValueEpisode == 0)
@@ -141,9 +145,7 @@ const PlayerScreen = () => {
 				return response.json();
 			}).then((dataFetch) => {
 				const newData = { ...stateData, listUrlEpisodes: dataFetch.episodes };
-				console.log('newData: ', newData);
 				setStateData(newData);
-				
 			}).catch((error) => {
 				console.warn(error);
 			});
@@ -164,7 +166,6 @@ const PlayerScreen = () => {
 		.then((response) => {
 			try {
 				response.json().then((dataFetch) => {
-					console.log(dataFetch);
 					if (dataFetch.src === null)
 					{
 						setHasError(true);
@@ -384,7 +385,6 @@ const PlayerScreen = () => {
 					setOnLoading(stateData.isBuffering);
 				}}
 				onError={(stateData) => {
-					console.warn(stateData);
 					setHasError(true);
 				}}
 				paused={isPaused}
