@@ -1,8 +1,11 @@
 import requests
 import string
 import os
+import m3u8
+import asyncio
 
 class Downloader:
+	onDownloading = False
 	listAnime = []
 
 	def __init__(self):
@@ -12,49 +15,77 @@ class Downloader:
 		anime = {
 			'episode': data['episode'],
 			'link': data['src'].replace(data['serverUrl'], 'http://localhost:8080'),
-			'name': self.__generate_filename(data['name'], data['episode'], data['season'])
+			'name': self.__generate_filename(data['name'], data['episode'], data['season']),
+			'episode': data['episode'],
+			'season': data['season'],
+			'poster': data['poster'],
 		}
+		print("Adding " + anime['name'])
 		if (data['src'].find('.mp4') != -1):
 			anime['type'] = 'mp4'
 		elif (data['src'].find('.m3u8') != -1):
 			anime['type'] = 'm3u8'
 		else:
 			anime['type'] = 'unknown'
-		print('New anime added: ', end='')
+		anime['failed'] = False
+		anime['finished'] = False
 		self.listAnime.append(anime)
-		self.download()
+		if (self.onDownloading == False):
+			asyncio.run(self.download())
 		
-	def download(self):
+	async def download(self):
+		self.onDownloading = True
 		os.system('mkdir -p ./downloaded')
 		for i, anime in enumerate(self.listAnime):
+			if (anime['finished'] or anime['failed']):
+				continue
+			print('Downloading ' + anime['name'])
 			if (anime['type'] == 'mp4'):
 				self.__mp4(anime['link'], anime['name'], i)
 			elif (anime['type'] == 'm3u8'):
-				self.m3u8(anime['link'])
+				self.__m3u8(anime['link'], anime['name'], i)
 			else:
 				print('Unknown type for ' + anime['name'])
+		self.onDownloading = False
 	
 	def __mp4(self, src, name, index):
-		response = requests.get(src, stream=True, headers={'Range': 'bytes=0-'})
-		total_size = int(str(response.headers.get('Content-Range')).split('/')[1])
+		response = requests.head(src, headers={'Range': 'bytes=0-'})
+		total_size = int(response.headers.get('Content-Range').split('/')[1])
 		range_start = 0
-		chunk_size = 1024 * 1024
+		chunk_size = 7 * 1024 * 1024
 
-		with open(name, "wb") as f:
-			while True:
-				headers = {"Range": f"bytes={range_start}-{range_start + chunk_size - 1}"}
-				response = requests.get(src, headers=headers, stream=True)
-				if (response.status_code in (200, 206)):
+		with open(f'./downloaded/{name}', "wb") as f:
+			while range_start < total_size:
+				headers = {"Range": f"bytes={range_start}-{min(range_start + chunk_size - 1, total_size - 1)}"}
+				response = requests.get(src, headers=headers, stream=True, timeout=50)
+				if response.status_code in (200, 206):
+					content_range = response.headers.get('Content-Range')
+					if content_range:
+						actual_start = int(content_range.split(' ')[1].split('-')[0])
+						if actual_start != range_start:
+							raise ValueError("Server doesn't support range requests")
 					f.write(response.content)
-					range_start += chunk_size
+					range_start += len(response.content)
 					self.listAnime[index]['progress'] = round(range_start / total_size * 100, 2)
 					print(f'{name}: {self.listAnime[index]["progress"]}%')
 				else:
 					self.listAnime[index]['failed'] = True
 					break
-				if range_start >= total_size:
-					self.listAnime[index]['finished'] = True
-					break
+			self.listAnime[index]['finished'] = True
+		print(f'{name}: Finished')
+
+	def __m3u8(self, src, name, index):
+		playlists = m3u8.load(src)
+		best_playlist = max(
+			playlists.playlists,
+			key=lambda p: (p.stream_info.resolution or (0, 0), p.stream_info.bandwidth)
+		)
+		code = os.system(f'ffmpeg -i {best_playlist.uri} -c copy ./downloaded/{name}')
+		if code == 0:
+			self.listAnime[index]['finished'] = True
+		else:
+			self.listAnime[index]['failed'] = True
+		print(f'{name}: Finished')
 
 	def __generate_filename(self, name, episode, season):
 		valid_chars = "-_.() %s%s" % (string.ascii_letters, string.digits)
@@ -64,3 +95,20 @@ class Downloader:
 		season = ''.join(c for c in season.split('/')[0] if c in valid_chars)
 		episode = ''.join(c for c in str(episode) if c in valid_chars)
 		return (f'{name}-{season}-EP{episode}-{lang.upper()}.mp4'.replace(' ', '_'))
+	
+	def get_status(self):
+		status = []
+		for anime in self.listAnime:
+			if (anime['type'] == 'unknown'):
+				continue
+			if (anime['type'] == 'mp4'):
+				progress = anime['progress']
+			else:
+				progress = -1
+			status.append({
+				'name': anime['name'],
+				'progress': progress,
+				'finished': anime['finished'],
+				'failed': anime['failed'],
+			})
+		return status

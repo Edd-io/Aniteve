@@ -29,7 +29,7 @@ class Proxy:
 		)
 	
 	@staticmethod
-	def vidmoly(url):
+	def vidmoly(url, request_host):
 		host = url.split('/')[2]
 		if (url.find('.m3u8') != -1):
 			headers = {
@@ -38,7 +38,7 @@ class Proxy:
 				'referer': 'https://vidmoly.to',
 			}
 			response = requests.get(url, headers=headers)
-			data = response.text.replace('https://', SERVER_PROXY_URL + '/api/video?')
+			data = response.text.replace('https://', request_host + '/api/video?')
 			return (Response(
 				headers={
 					'Access-Control-Allow-Origin': '*', 

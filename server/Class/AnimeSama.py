@@ -36,7 +36,7 @@ class AnimeSama:
 	url = URL_AS + "catalogue/listing_all.php"
 	thread_status_anime = None
 	db = None
-	disable_get_anime_status = True
+	disable_get_anime_status = False
 
 	def __init__(self, db):
 		self.db = db
@@ -245,8 +245,10 @@ class AnimeSama:
 				list_anime = soup.find('div', id='containerAjoutsAnimes')
 				list_title = list_anime.find_all('h1')
 				list_url = list_anime.find_all('a')
+				list_episode = list_anime.find_all('button', class_='bg-cyan-600')
 				list_season = []
 				list_redirect = []
+				list_number_episode = []
 				
 				for i, title in enumerate(list_title):
 					list_title[i] = title.text
@@ -262,14 +264,23 @@ class AnimeSama:
 							break
 						j -= 1
 					if (nb_slash != 2):
-						list_url.pop(i)		
-
+						list_url.pop(i)
+				for i, episode in enumerate(list_episode):
+					try:
+						ep = episode.text.lower().split('episode ')[1]
+					except:
+						ep = -1
+					list_number_episode.append(ep)
 				data = []
 				for i, title in enumerate(list_title):
-					data.append({'title': title, 'season': list_season[i], 'url': list_redirect[i]})
+					if (list_number_episode[i] == -1):
+						continue
+					data.append({'title': title, 'season': list_season[i], 'url': list_redirect[i], 'episode': list_number_episode[i]})
 				self.db.update_anime_status(data)
 				sleep(1800)
 			except Exception as e:
+				print(e)
+				sleep(1800)
 				pass
 		self.thread_status_anime = None
 		return

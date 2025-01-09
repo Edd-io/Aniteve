@@ -35,6 +35,7 @@
 	let showOverlay: boolean			= false;
 	let hasAlreadyPlayed: boolean		= false;
 	let deadSource: boolean				= false;
+	let src: string						= '';
 
 	menu.dominantColor = '#c7c7c75c';
 	onMount(() => {
@@ -200,6 +201,8 @@
 		}).then((response) => {
 			return response.json();
 		}).then((data) => {
+			src = data.src;
+			console.log('New source: ' + src);
 			putSrc(data.src);
 		}).catch((error) => {
 			console.error(error);
@@ -219,7 +222,7 @@
 				'Content-Type': 'application/json',
 			},
 			body: JSON.stringify({
-				src: video.src,
+				src: src,
 				name: menu.data.anime.title,
 				episode: selectedEpisode + 1,
 				season: allSeasons[idSelectedSeason],

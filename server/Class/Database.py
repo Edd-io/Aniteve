@@ -163,8 +163,8 @@ class Database:
 				cursor.execute("""--sql
 					UPDATE progress
 					SET status = 2, episode = episode + 1, progress = 0
-					WHERE id_anime = ? AND status = 1 AND season = ?
-				""", (anime_id[0], anime['season']))
+					WHERE id_anime = ? AND status = 1 AND season = ? AND episode < ?
+				""", (anime_id[0], anime['season'], anime['episode']))
 				cursor.execute("""--sql
 					UPDATE progress
 					SET status = 3, episode = 1, progress = 0, season = ?

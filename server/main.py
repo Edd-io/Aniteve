@@ -11,6 +11,10 @@ from flask_cors import CORS
 from PIL import Image
 from collections import Counter
 from io import BytesIO
+import time
+import logging
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.ERROR)
 
 db = Database()
 site = AnimeSama(db)
@@ -123,7 +127,10 @@ def srcFile():
 @app.route('/api/video')
 def video():
 	url = 'https://' + request.url.split('?', 1)[1]
+	request_host = request.url_root
 
+	if (request_host[-1] == '/'):
+		request_host = request_host[:-1]
 	try:
 		if (url == 'https://'):
 			return (Response(
@@ -139,7 +146,7 @@ def video():
 		elif (url.find('sendvid') != -1):
 			return (Proxy.sendvid(url))
 		else:
-			return (Proxy.vidmoly(url))
+			return (Proxy.vidmoly(url, request_host))
 	except Exception as e:
 		return ({'error': str(e)})
 
@@ -227,17 +234,25 @@ def get_average_color():
 
 @app.route('/api/download', methods=['POST'])
 def download_func():
-	need_keys = ['src', 'name', 'episode', 'season', 'serverUrl', 'id']
+	need_keys = ['src', 'name', 'episode', 'season', 'serverUrl', 'poster']
 	data = request.get_json()
 
-	# try:
-	for key in need_keys:
-		if key not in data:
-			return {'error': 'Missing key ' + key}
-	download.add(data)
-	return ({'status': 'success'})
-	# except Exception as e:
-	# 	return {'error': str(e)}
+	try:
+		for key in need_keys:
+			if key not in data:
+				return {'error': 'Missing key ' + key}
+		download.add(data)
+		return ({'status': 'success'})
+	except Exception as e:
+		return {'error': str(e)}
+
+@app.route('/api/get_status_download')
+def get_status_download():
+	try:
+		status = download.get_status()
+		return (status)
+	except Exception as e:
+		return ({'error': str(e)})
 
 if __name__ == '__main__':
 	app.run(debug=False, port=8080, host='0.0.0.0')
