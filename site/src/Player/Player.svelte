@@ -24,6 +24,7 @@
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
+				'Authorization': localStorage.getItem('token') || '',
 			}, 
 			body: JSON.stringify({url: data.anime.url, season: data.anime.season[idSelectedSeason], serverUrl: serverUrl}),
 		}).then((response) => {

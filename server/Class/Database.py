@@ -1,5 +1,6 @@
 import sqlite3
 import ast
+import os
 
 class Database:
 	def __init__(self):
@@ -8,6 +9,12 @@ class Database:
 
 	def create_table(self):
 		cursor = self.conn.cursor()
+		cursor.execute('''
+			CREATE TABLE IF NOT EXISTS users (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				username TEXT NOT NULL
+			)''')
+		self.conn.commit()
 		cursor.execute('''
 			CREATE TABLE IF NOT EXISTS anime_list (
 				id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -21,6 +28,7 @@ class Database:
 		cursor.execute('''
 			CREATE TABLE IF NOT EXISTS progress (
 				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				id_user INTEGER,
 				id_anime INTEGER,
 				episode INTEGER,
 				season TEXT,
@@ -28,10 +36,21 @@ class Database:
 				status INTEGER,
 				see_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 				poster TEXT,
-				FOREIGN KEY (id_anime) REFERENCES anime_list (id) ON DELETE CASCADE
+				FOREIGN KEY (id_anime) REFERENCES anime_list (id) ON DELETE CASCADE,
+				FOREIGN KEY (id_user) REFERENCES users (id) ON DELETE CASCADE
+			)''')
+		self.conn.commit()
+		cursor.execute('''
+			CREATE TABLE IF NOT EXISTS download (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				name TEXT,
+				failed BOOLEAN,
+				finished BOOLEAN,
+				poster TEXT
 			)''')
 		self.conn.commit()
 		cursor.close()
+		self.init_download()
 		print('Table created')
 
 	def insert_anime(self, anime):
@@ -85,7 +104,8 @@ class Database:
 				SET episode = ?,
 					season = ?,
 					progress = ?,
-					status = ?
+					status = ?,
+					see_date = CURRENT_TIMESTAMP
 				WHERE id_anime = ?''', (anime['episode'], anime['allSeasons'][anime['seasonId']], anime['progress'], status, anime['id']))
 		else:
 			print('Inserting id ' + str(anime['id']))
@@ -143,14 +163,14 @@ class Database:
 	def update_anime_status(self, list_anime):
 		cursor = self.conn.cursor()
 		for anime in list_anime:
-			anime_id = cursor.execute("""--sql
+			anime_id = cursor.execute("""
 				SELECT id
 				FROM anime_list
 				WHERE url = ?
 			""", (anime['url'],)).fetchone()
 			if not anime_id:
 				continue
-			sawInVOSTFR = cursor.execute("""--sql
+			sawInVOSTFR = cursor.execute("""
 				SELECT season
 				FROM progress
 				WHERE id_anime = ?
@@ -160,16 +180,79 @@ class Database:
 			else:
 				continue
 			if sawInVOSTFR == (anime['season'].find('vostfr') != -1):
-				cursor.execute("""--sql
+				cursor.execute("""
 					UPDATE progress
-					SET status = 2, episode = episode + 1, progress = 0
+					SET status = 2, episode = episode + 1, progress = 0, see_date = CURRENT_TIMESTAMP
 					WHERE id_anime = ? AND status = 1 AND season = ? AND episode < ?
 				""", (anime_id[0], anime['season'], anime['episode']))
-				cursor.execute("""--sql
+				cursor.execute("""
 					UPDATE progress
-					SET status = 3, episode = 1, progress = 0, season = ?
+					SET status = 3, episode = 1, progress = 0, season = ?, see_date = CURRENT_TIMESTAMP
 					WHERE id_anime = ? AND status = 1 AND season != ?
 				""", (anime['season'], anime_id[0], anime['season']))
 				print('Maybe an update for ' + anime['title'])
 		self.conn.commit()
 		cursor.close()
+
+	def init_download(self):
+		cursor = self.conn.cursor()
+		data = cursor.execute('''
+			SELECT * FROM download
+		''').fetchall()
+		for download in data:
+			print('Checking ' + download[1])
+			if (download[2] == False and download[3] == False):
+				cursor.execute('''
+					UPDATE download
+					SET failed = 1
+					WHERE name = ?''', (download[1],))
+		self.conn.commit()
+		cursor.close()
+
+	def insert_download(self, name, poster):
+		cursor = self.conn.cursor()
+		cursor.execute('''
+			INSERT INTO download (name, failed, finished, poster)
+			VALUES (?, ?, ?, ?)''', (name, False, False, poster))
+		self.conn.commit()
+		cursor.close()
+	
+	def get_download(self):
+		cursor = self.conn.cursor()
+		downloads = cursor.execute('''
+			SELECT * FROM download
+		''').fetchall()
+		cursor.close()
+		return (downloads)
+	
+	def get_download_by_name(self, name):
+		cursor = self.conn.cursor()
+		download = cursor.execute('''
+			SELECT * FROM download
+			WHERE name = ?''', (name,)).fetchone()
+		cursor.close()
+		return (download)
+	
+	def update_download(self, name, failed=False, finished=False):
+		cursor = self.conn.cursor()
+		cursor.execute('''
+			UPDATE download
+			SET failed = ?,
+				finished = ?
+			WHERE name = ?''', (failed, finished, name))
+		self.conn.commit()
+		cursor.close()
+
+	def delete_download(self, id):
+		cursor = self.conn.cursor()
+		download = cursor.execute('''
+			SELECT * FROM download
+			WHERE id = ?''', (id,)).fetchone()
+		os.system(f'rm -rf ./downloaded/{download[1]}')
+		cursor.execute('''
+			DELETE FROM download
+			WHERE id = ?''', (id,))
+		self.conn.commit()
+		cursor.close()
+
+	

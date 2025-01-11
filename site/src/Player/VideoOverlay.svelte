@@ -51,6 +51,7 @@
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
+					'Authorization': localStorage.getItem('token') || '',
 				},
 				body: JSON.stringify({
 					id: menu.data.anime.id,
@@ -196,6 +197,7 @@
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
+				'Authorization': localStorage.getItem('token') || '',
 			},
 			body: JSON.stringify({serverUrl: serverUrl}),
 		}).then((response) => {
@@ -220,6 +222,7 @@
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
+				'Authorization': localStorage.getItem('token') || '',
 			},
 			body: JSON.stringify({
 				src: src,
@@ -227,12 +230,12 @@
 				episode: selectedEpisode + 1,
 				season: allSeasons[idSelectedSeason],
 				serverUrl: serverUrl,
-				id: menu.data.anime.id,
+				poster: menu.data.tmdb.poster ? menu.data.tmdb.poster : menu.data.anime.img,
 			})
 		}).then((response) => {
 			return response.json();
 		}).then((data) => {
-			console.log(data);
+			alert('Votre téléchargement est en cours, vous pouvez le suivre dans la section téléchargement');
 		}).catch((error) => {
 			console.error(error);
 		})

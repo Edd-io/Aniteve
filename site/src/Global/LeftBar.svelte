@@ -9,7 +9,7 @@
 <main>
 	<div id="left-bar" style="background-color: {menu.dominantColor}; border: 1px solid #c7c7c72b;box-shadow: 0 0 5px #0000003b; {menu.selected !== 3 ? 'border-radius: 0.5rem;' : ''}">
 		<h1 id="logo">Logo</h1>
-		<Link to="/" style="{styleButton}{menu.selected === 0 ? 'background-color: #c7c7c7af;' : ''}">
+		<Link to="/home" style="{styleButton}{menu.selected === 0 ? 'background-color: #c7c7c7af;' : ''}">
 			<img src="../assets/img/home.png" alt="home" />
 		</Link>
 		<Link to="/search" style="{styleButton}{menu.selected === 1 ? 'background-color: #c7c7c7af;' : ''}">

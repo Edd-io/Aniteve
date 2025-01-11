@@ -50,6 +50,7 @@
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
+					'Authorization': localStorage.getItem('token') || '',
 				},
 				body: JSON.stringify({url: url}),
 			});
@@ -63,6 +64,7 @@
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
+					'Authorization': localStorage.getItem('token') || '',
 				},
 				body: JSON.stringify({url: url}),
 			});
@@ -105,6 +107,7 @@
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
+				'Authorization': localStorage.getItem('token') || '',
 			},
 			body: JSON.stringify({url: url}),
 		});
@@ -116,6 +119,7 @@
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
+					'Authorization': localStorage.getItem('token') || '',
 				},
 				body: JSON.stringify({url: fallbackUrl}),
 			});
@@ -133,6 +137,7 @@
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json',
+						'Authorization': localStorage.getItem('token') || '',
 					},
 					body: JSON.stringify({id: anime.id}),
 				}).then((response) => {
@@ -150,6 +155,7 @@
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json',
+			'Authorization': localStorage.getItem('token') || '',
 		},
 		body: JSON.stringify({url: anime.url, serverUrl: serverUrl}),
 	}).then((response) => {
@@ -200,6 +206,7 @@
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
+				'Authorization': localStorage.getItem('token') || '',
 			},
 			body: JSON.stringify({url: imageSrc}),
 		}).then((response) => {

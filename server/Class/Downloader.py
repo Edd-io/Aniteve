@@ -3,12 +3,15 @@ import string
 import os
 import m3u8
 import asyncio
+from flask import Response
 
 class Downloader:
 	onDownloading = False
 	listAnime = []
+	db = None
 
-	def __init__(self):
+	def __init__(self, database):
+		self.db = database
 		pass
 
 	def add(self, data):
@@ -20,15 +23,21 @@ class Downloader:
 			'season': data['season'],
 			'poster': data['poster'],
 		}
+		if (self.db.get_download_by_name(anime['name'])):
+			print("Already added " + anime['name'])
+			return
 		print("Adding " + anime['name'])
+		self.db.insert_download(anime['name'], anime['poster'])
 		if (data['src'].find('.mp4') != -1):
 			anime['type'] = 'mp4'
 		elif (data['src'].find('.m3u8') != -1):
 			anime['type'] = 'm3u8'
 		else:
 			anime['type'] = 'unknown'
+		anime['progress'] = 0
 		anime['failed'] = False
 		anime['finished'] = False
+		anime['waiting'] = True
 		self.listAnime.append(anime)
 		if (self.onDownloading == False):
 			asyncio.run(self.download())
@@ -39,6 +48,7 @@ class Downloader:
 		for i, anime in enumerate(self.listAnime):
 			if (anime['finished'] or anime['failed']):
 				continue
+			anime['waiting'] = False
 			print('Downloading ' + anime['name'])
 			if (anime['type'] == 'mp4'):
 				self.__mp4(anime['link'], anime['name'], i)
@@ -70,7 +80,10 @@ class Downloader:
 					print(f'{name}: {self.listAnime[index]["progress"]}%')
 				else:
 					self.listAnime[index]['failed'] = True
+					self.db.update_download(name, failed=True)
 					break
+		if not self.listAnime[index]['failed']:
+			self.db.update_download(name, finished=True)
 			self.listAnime[index]['finished'] = True
 		print(f'{name}: Finished')
 
@@ -82,8 +95,10 @@ class Downloader:
 		)
 		code = os.system(f'ffmpeg -i {best_playlist.uri} -c copy ./downloaded/{name}')
 		if code == 0:
+			self.db.update_download(name, finished=True)
 			self.listAnime[index]['finished'] = True
 		else:
+			self.db.update_download(name, failed=True)
 			self.listAnime[index]['failed'] = True
 		print(f'{name}: Finished')
 
@@ -98,17 +113,53 @@ class Downloader:
 	
 	def get_status(self):
 		status = []
-		for anime in self.listAnime:
-			if (anime['type'] == 'unknown'):
-				continue
-			if (anime['type'] == 'mp4'):
-				progress = anime['progress']
-			else:
-				progress = -1
+		data_db = self.db.get_download()
+		for anime in data_db:
+			anime_dict = None
+			for item in self.listAnime:
+				if item['name'] == anime[1]:
+					anime_dict = item
+					break
+			progress = -1
+			waiting = False
+			if anime_dict:
+				if anime_dict['waiting']:
+					waiting = True
+				if (anime_dict['type'] == 'mp4'):
+					progress = anime_dict['progress']
+				else:
+					progress = -1
 			status.append({
-				'name': anime['name'],
+				'id': anime[0],
+				'name': anime[1],
+				'failed': anime[2],
+				'finished': anime[3],
+				'poster': anime[4],
 				'progress': progress,
-				'finished': anime['finished'],
-				'failed': anime['failed'],
+				'waiting': waiting,
 			})
-		return status
+		return (status)
+	
+	def delete(self, id):
+		self.db.delete_download(id)
+		for i, anime in enumerate(self.listAnime):
+			if anime['id'] == id:
+				self.listAnime.pop(i)
+				break
+		return ({'status': 'success'})
+	
+	def download(self, name):
+		file_path = f'./downloaded/{name}'
+		if (name.find('..') != -1 or name.find('/') != -1 or name.find('\\') != -1):
+			return ({'error': 'Invalid name'})
+		if os.path.exists(file_path):
+			return (Response(
+				open(file_path, 'rb'),
+				mimetype='application/octet-stream',
+				headers={
+					"Content-Disposition": f"attachment;filename={name}",
+					"Content-Length": os.path.getsize(file_path)
+				}
+			))
+		else:
+			return ({'error': 'File not found'})

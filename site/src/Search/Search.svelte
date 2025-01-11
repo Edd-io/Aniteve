@@ -3,6 +3,7 @@
 
 	export let menu: any;
 
+	const	serverUrl = 'http://localhost:8080';
 	let animeList: any = [];
 	let showedAnimeList: any = [];
 	let animeSelected: any = {bool: false, id: 0};
@@ -10,7 +11,13 @@
 
 	menu.dominantColor = '#c7c7c75c';
 	menu.selected = 1;
-	fetch('http://localhost:8080/api/get_all_anime')
+	console.log('token: ', localStorage.getItem('token'));
+	fetch(serverUrl + '/api/get_all_anime', {
+		method: 'GET',
+		headers: {
+			'Authorization': localStorage.getItem('token') || ''
+		}
+	})
 	.then(res => res.json())
 	.then(data => {
 		animeList = data;

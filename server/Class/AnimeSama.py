@@ -236,6 +236,7 @@ class AnimeSama:
 			url = serverUrl + SERV_URL_VIDEO + line[pos + 8:posEnd]
 		return (url)
 	
+	# todo : add new func to get new anime
 	def get_anime_status(self):
 		while (1):
 			try:
