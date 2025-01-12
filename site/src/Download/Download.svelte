@@ -97,7 +97,6 @@
 				</div>
 			</div>
 		{/each}
-
 </main>
 
 <style>

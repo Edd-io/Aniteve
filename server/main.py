@@ -65,6 +65,63 @@ def check_token():
 	except Exception as e:
 		return ({'error': str(e)})
 
+@app.route('/api/add_user', methods=['POST'])
+def add_user():
+	if (request.headers.get('Authorization') == None or decode_token(request.headers.get('Authorization')) == None):
+		return (Response(
+			response=json.dumps({'error': 'Invalid or missing token'}),
+			status=401,
+			mimetype='application/json',
+			headers={'Access-Control-Allow-Origin': '*'}
+		))
+	need_keys = ['name']
+	data = request.get_json()
+
+	try:
+		for key in need_keys:
+			if key not in data:
+				return ({'error': 'Missing key ' + key})
+		db.insert_user(data['name'])
+		return ({'status': 'success'})
+	except Exception as e:
+		return ({'error': str(e)})
+
+@app.route('/api/get_users')
+def get_users():
+	if (request.headers.get('Authorization') == None or decode_token(request.headers.get('Authorization')) == None):
+		return (Response(
+			response=json.dumps({'error': 'Invalid or missing token'}),
+			status=401,
+			mimetype='application/json',
+			headers={'Access-Control-Allow-Origin': '*'}
+		))
+	try:
+		users = db.get_users()
+		return (users)
+	except Exception as e:
+		return ({'error': str(e)})
+	
+@app.route('/api/get_name', methods=['POST'])
+def get_name():
+	if (request.headers.get('Authorization') == None or decode_token(request.headers.get('Authorization')) == None):
+		return (Response(
+			response=json.dumps({'error': 'Invalid or missing token'}),
+			status=401,
+			mimetype='application/json',
+			headers={'Access-Control-Allow-Origin': '*'}
+		))
+	need_keys = ['id']
+	data = request.get_json()
+
+	try:
+		for key in need_keys:
+			if key not in data:
+				return ({'error': 'Missing key ' + key})
+		name = db.get_name_by_id(data['id'])
+		return (name)
+	except Exception as e:
+		return ({'error': str(e)})
+
 
 @app.route('/api/get_all_anime')
 def get_all_anime():
@@ -232,13 +289,13 @@ def update_progress():
 			mimetype='application/json',
 			headers={'Access-Control-Allow-Origin': '*'}
 		))
-	need_keys = ['id', 'episode', 'seasonId', 'progress', 'totalEpisode', 'allSeasons', 'poster']
+	need_keys = ['id', 'episode', 'seasonId', 'progress', 'totalEpisode', 'allSeasons', 'poster', 'idUser']
 	anime = request.get_json()
 
 	try:
 		for key in need_keys:
 			if key not in anime:
-				return {'error': 'Missing key ' + key}
+				return ({'error': 'Missing key ' + key})
 		db.update_progress(anime)
 		return ({'status': 'success'})
 	except Exception as e:
@@ -253,19 +310,19 @@ def get_progress():
 			mimetype='application/json',
 			headers={'Access-Control-Allow-Origin': '*'}
 		))
-	need_keys = ['id']
+	need_keys = ['id', 'idUser']
 	anime = request.get_json()
 
 	try:
 		for key in need_keys:
 			if key not in anime:
-				return {'error': 'Missing key ' + key}
+				return ({'error': 'Missing key ' + key})
 		progress = db.get_progress(anime)
 		return (progress)
 	except Exception as e:
 		return ({'error': str(e)})
 	
-@app.route('/api/get_all_progress')
+@app.route('/api/get_all_progress', methods=['POST'])
 def get_all_progress():
 	if (request.headers.get('Authorization') == None or decode_token(request.headers.get('Authorization')) == None):
 		return (Response(
@@ -274,8 +331,14 @@ def get_all_progress():
 			mimetype='application/json',
 			headers={'Access-Control-Allow-Origin': '*'}
 		))
+	need_keys = ['idUser']
+	anime = request.get_json()
+
 	try:
-		progress = db.get_all_progress()
+		for key in need_keys:
+			if key not in anime:
+				return ({'error': 'Missing key ' + key})
+		progress = db.get_all_progress(anime['idUser'])
 		return (progress)
 	except Exception as e:
 		return ({'error': str(e)})
@@ -295,7 +358,7 @@ def tmdb():
 	try:
 		for key in need_keys:
 			if key not in data:
-				return {'error': 'Missing key ' + key}
+				return ({'error': 'Missing key ' + key})
 		if (data['url'].startswith('https://api.themoviedb.org/3/') == False):
 			return {'error': 'Invalid url'}
 		response = requests.get(data['url'].replace('{api_key_tmdb}', 'api_key=' + key_api_tmbd))
@@ -323,7 +386,7 @@ def get_average_color():
 	try:
 		for key in need_keys:
 			if key not in data:
-				return {'error': 'Missing key ' + key}
+				return ({'error': 'Missing key ' + key})
 		response = requests.get(data['url'])
 		image = Image.open(BytesIO(response.content))
 		image = image.resize((25, 25))
@@ -355,7 +418,7 @@ def download_func():
 	try:
 		for key in need_keys:
 			if key not in data:
-				return {'error': 'Missing key ' + key}
+				return ({'error': 'Missing key ' + key})
 		download.add(data)
 		return ({'status': 'success'})
 	except Exception as e:
@@ -391,7 +454,7 @@ def delete_download():
 	try:
 		for key in need_keys:
 			if key not in data:
-				return {'error': 'Missing key ' + key}
+				return ({'error': 'Missing key ' + key})
 		download.delete(data['id'])
 		return ({'status': 'success'})
 	except Exception as e:

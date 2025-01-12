@@ -9,35 +9,35 @@
 	import Download from './Download/Download.svelte';
 	import LeftBar from "./Global/LeftBar.svelte";
     import Login from "./Login/Login.svelte";
+	import ChooseUser from "./Login/ChooseUser.svelte";
 
-	const serverUrl = 'http://localhost:8080';
-	const cantDirectAccess = ['/anime', '/player'];
-	const location = window.location.pathname;
+	const	serverUrl = 'http://localhost:8080';
+	const	cantDirectAccess = ['/anime', '/player'];
+	const	location = window.location.pathname;
 
 	let menu: any = {
 		selected: -1 as number,
 		data: {} as any,
 		dominantColor: '' as string,
-	}; // 0: home, 1: search,  2: list, 3: anime, 4: player, 6: Download, 7: Login
+		user: {
+			id: 0,
+			name: ''
+		}
+	}; // 0: home, 1: search,  2: list, 3: anime, 4: player, 6: Download, 7: Login, 8: ChooseUser
 
-	window.onpopstate = function(event)
-	{
-		const location = window.location.pathname;
-		if (cantDirectAccess.includes(location))
-			navigate('/home');
-	}
-
-	window.onload = function()
-	{
-		if (cantDirectAccess.includes(location))
-			navigate('/home');
-		else
-			history.pushState(null, 'Anime', location);
-	}
-
-	console.log('token: ', localStorage.getItem('token'));
 	if (localStorage.getItem('token'))
-		checkToken();
+	{
+		checkToken().then(() => {
+			get_name();
+			if (location === '/')
+				navigate('/home', {replace: true});
+		}).catch(() => {
+			navigate('/', {replace: true});
+			history.replaceState(null, 'Login', '/');
+			menu.selected = 7;
+		});
+		init();
+	}
 	else
 	{
 		navigate('/', {replace: true});
@@ -45,48 +45,103 @@
 		menu.selected = 7;
 	}
 
-	function checkToken()
+	function init()
 	{
-		const token = localStorage.getItem('token');
-		if (token)
+		window.onpopstate = function(event)
 		{
-			fetch(serverUrl + '/api/check_token', {
+			const location = window.location.pathname;
+			if (cantDirectAccess.includes(location))
+				navigate('/home');
+		}
+
+		window.onload = function()
+		{
+			if (cantDirectAccess.includes(location))
+				navigate('/home');
+			else
+				history.pushState(null, 'Aniteve', location);
+		}
+	}
+
+	function get_name()
+	{
+		const idUser = localStorage.getItem('idUser');
+		if (idUser)
+		{
+			fetch(serverUrl + '/api/get_name', {
 				method: 'POST',
 				headers: {
-					'Content-Type': 'application/json'
+					'Content-Type': 'application/json',
+					'Authorization': localStorage.getItem('token') || '',
 				},
-				body: JSON.stringify({ token })
+				body: JSON.stringify({ id: idUser })
 			})
 			.then(res => res.json())
 			.then(data => {
-				if (data.status === 'success')
-				{
-					setTimeout(() => {
-						navigate('/home', {replace: true});
-						menu.selected = 0;
-						history.replaceState(null, 'Login', '/');
-					}, 200);
-				}
-				else
-					localStorage.removeItem('token');
+				menu.user.id = parseInt(idUser);
+				menu.user.name = data.name;
 			})
 			.catch(() => {
+				console.warn('Error: get_name');
+				localStorage.removeItem('idUser');
 				localStorage.removeItem('token');
+				navigate('/', {replace: true});
+				menu.selected = 7;
+				history.replaceState(null, 'Aniteve - Choisir un utilisateur', '/choose_user');
 			});
 		}
+		else
+		{
+			navigate('/choose_user', {replace: true});
+			menu.selected = 8;
+			history.replaceState(null, 'Aniteve - Choisir un utilisateur', '/choose_user');
+		}
+	}
+
+	function checkToken()
+	{
+		return (new Promise<void>((resolve, reject)=> {
+			const token = localStorage.getItem('token');
+			if (token)
+			{
+				fetch(serverUrl + '/api/check_token', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({ token })
+				})
+				.then(res => res.json())
+				.then(data => {
+					if (data.status === 'success')
+						resolve();
+					else
+					{
+						localStorage.removeItem('token');
+						reject();
+					}
+				})
+				.catch(() => {
+					localStorage.removeItem('token');
+					reject();
+				});
+			}
+		}));
 	}
 </script>
 
 
 <main>
 	<Router>
-		{#if menu.selected != 7 && menu.selected != -1}
+		{#if menu.selected != 7 && menu.selected != -1 && menu.selected != 8}
 			<LeftBar bind:menu={menu} />
 		{/if}
 		<div id="content">
-			<Route path="/" let:location>
-				<Login bind:menu={menu} />
-			</Route>
+			{#if menu.selected == 7}
+				<Route path="/" let:location>
+					<Login bind:menu={menu} />
+				</Route>
+			{/if}
 			<Route path="/home" let:location>
 				<Home bind:menu={menu} />
 			</Route>
@@ -104,6 +159,9 @@
 			</Route>
 			<Route path="/download" let:location>
 				<Download bind:menu={menu} />
+			</Route>
+			<Route path="/choose_user" let:location>
+				<ChooseUser bind:menu={menu} />
 			</Route>
 		</div>
 	</Router>

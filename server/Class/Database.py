@@ -53,6 +53,40 @@ class Database:
 		self.init_download()
 		print('Table created')
 
+	def insert_user(self, username):
+		cursor = self.conn.cursor()
+		cursor.execute('''
+			INSERT INTO users (username)
+			VALUES (?)''', (username,))
+		self.conn.commit()
+		cursor.close()
+
+	def get_users(self):
+		data = []
+		cursor = self.conn.cursor()
+		users = cursor.execute('''
+			SELECT * FROM users
+		''').fetchall()
+		cursor.close()
+		for user in users:
+			data.append({
+				'id': user[0],
+				'name': user[1]
+			})
+		return (data)
+	
+	def get_name_by_id(self, id):
+		cursor = self.conn.cursor()
+		user = cursor.execute('''
+			SELECT * FROM users
+			WHERE id = ?''', (id,)).fetchone()
+		cursor.close()
+		data = {
+			'id': user[0],
+			'name': user[1]
+		}
+		return (data)
+
 	def insert_anime(self, anime):
 		cursor = self.conn.cursor()
 		isPresent = cursor.execute('''
@@ -81,7 +115,8 @@ class Database:
 		cursor = self.conn.cursor()
 		isPresent = cursor.execute('''
 			SELECT * FROM progress
-			WHERE id_anime = ?''', (anime['id'],)).fetchone()
+			WHERE id_anime = ? AND id_user = ?
+		''', (anime['id'], anime['idUser'])).fetchone()
 		status = 0
 
 		if (anime['progress'] >= 80):
@@ -106,12 +141,13 @@ class Database:
 					progress = ?,
 					status = ?,
 					see_date = CURRENT_TIMESTAMP
-				WHERE id_anime = ?''', (anime['episode'], anime['allSeasons'][anime['seasonId']], anime['progress'], status, anime['id']))
+				WHERE id_anime = ? AND id_user = ?
+			''', (anime['episode'], anime['allSeasons'][anime['seasonId']], anime['progress'], status, anime['id'], anime['idUser']))
 		else:
 			print('Inserting id ' + str(anime['id']))
 			cursor.execute('''
-				INSERT INTO progress (id_anime, episode, season, progress, status, poster)
-				VALUES (?, ?, ?, ?, ?, ?)''', (anime['id'], anime['episode'], anime['allSeasons'][anime['seasonId']], anime['progress'], status, anime['poster']))
+				INSERT INTO progress (id_anime, episode, season, progress, status, poster, id_user)
+				VALUES (?, ?, ?, ?, ?, ?, ?)''', (anime['id'], anime['episode'], anime['allSeasons'][anime['seasonId']], anime['progress'], status, anime['poster'], anime['idUser']))
 		self.conn.commit()
 		cursor.close()
 
@@ -119,43 +155,45 @@ class Database:
 		cursor = self.conn.cursor()
 		progress = cursor.execute('''
 			SELECT * FROM progress
-			WHERE id_anime = ?''', (anime['id'],)).fetchone()
+			WHERE id_anime = ? AND id_user = ?
+		''', (anime['id'], anime['idUser'])).fetchone()
 		cursor.close()
 		if not progress:
 			return ({'find': False})
 		dataProgress = {
 			'find': True,
-			'episode': progress[2],
-			'season': progress[3],
-			'progress': progress[4],
-			'status': progress[5],		
+			'episode': progress[3],
+			'season': progress[4],
+			'progress': progress[5],
+			'status': progress[6],		
 		}
 		return (dataProgress)
 	
-	def get_all_progress(self):
+	def get_all_progress(self, id_user):
 		cursor = self.conn.cursor()
 		progress = cursor.execute('''
 			SELECT progress.*, datetime(progress.see_date, 'localtime') AS local_see_date, anime_list.*
 			FROM progress
 			JOIN anime_list ON progress.id_anime = anime_list.id
+			WHERE progress.id_user = ?
 			ORDER BY progress.see_date DESC
-		''').fetchall()
+		''', (id_user,)).fetchall()
 		cursor.close()
 		for i in range(len(progress)):
 			progress[i] = {
 				"anime": {
-					"title": progress[i][10],
-					"alternative_title": progress[i][11],
-					"genre": ast.literal_eval(progress[i][12]),
-					"id": progress[i][1],
-					"img": progress[i][14],
-					"url": progress[i][13],
+					"title": progress[i][11],
+					"alternative_title": progress[i][12],
+					"genre": ast.literal_eval(progress[i][13]),
+					"id": progress[i][2],
+					"img": progress[i][15],
+					"url": progress[i][14],
 				},
-				"episode": progress[i][2],
-				"season": progress[i][3],
-				"progress": progress[i][4],
-				"completed": progress[i][5],
-				"poster": progress[i][7],
+				"episode": progress[i][3],
+				"season": progress[i][4],
+				"progress": progress[i][5],
+				"completed": progress[i][6],
+				"poster": progress[i][8],
 			}
 		return (progress)
 

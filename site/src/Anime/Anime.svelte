@@ -139,10 +139,11 @@
 						'Content-Type': 'application/json',
 						'Authorization': localStorage.getItem('token') || '',
 					},
-					body: JSON.stringify({id: anime.id}),
+					body: JSON.stringify({id: anime.id, idUser: menu.user.id}),
 				}).then((response) => {
 					return response.json();
 				}).then((data) => {
+					console.log(data);
 					resolve(data);
 				}).catch((error) => {
 					console.warn(error);

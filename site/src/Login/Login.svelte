@@ -15,12 +15,11 @@
 		})
 		.then(res => res.json())
 		.then(data => {
-			console.log(data);
 			if (data.token)
 			{
 				localStorage.setItem('token', data.token);
-				menu.selected = 0;
-				navigate('/home', {replace: true});
+				menu.selected = 8;
+				navigate('/choose_user', {replace: true});
 			}
 			else
 			{

@@ -11,7 +11,6 @@
 
 	menu.dominantColor = '#c7c7c75c';
 	menu.selected = 1;
-	console.log('token: ', localStorage.getItem('token'));
 	fetch(serverUrl + '/api/get_all_anime', {
 		method: 'GET',
 		headers: {

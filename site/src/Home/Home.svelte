@@ -20,16 +20,21 @@
 	function getDataProgress()
 	{
 		fetch(serverUrl + '/api/get_all_progress', {
-			method: 'GET',
+			method: 'POST',
 			headers: {
+				'Content-Type': 'application/json',
 				'Authorization': localStorage.getItem('token') || '',
 			},
+			body: JSON.stringify({idUser: menu.user.id}),
 		})
 		.then((response) => {
 			return (response.json());
 		})
 		.then((json) => {
 			progressData = json;
+			console.log(progressData);
+			if (!progressData.filter)
+				return;
 			nbAnimeResume = progressData.filter((animeData: any) => animeData.completed === 0 || animeData.completed === 2).length;
 			nbAnimeSeason = progressData.filter((animeData: any) => animeData.completed === 3).length;
 		})
@@ -81,6 +86,7 @@
 </script>
 
 <main>
+	<h2 style="text-align: right; width: 100%; margin-bottom: 1rem">Bonjour {menu.user.name} !</h2>
 	{#if nbAnimeResume > 0}
 		<div class='part'>
 			<div class='title-div'>

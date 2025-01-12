@@ -17,10 +17,12 @@
 	function getDataProgress()
 	{
 		fetch(serverUrl + '/api/get_all_progress', {
-			method: 'GET',
+			method: 'POST',
 			headers: {
+				'Content-Type': 'application/json',
 				'Authorization': localStorage.getItem('token') || '',
 			},
+			body: JSON.stringify({idUser: menu.user.id}),
 		})
 		.then((response) => {
 			return (response.json());

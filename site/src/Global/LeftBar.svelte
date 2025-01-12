@@ -7,7 +7,7 @@
 </script>
 
 <main>
-	<div id="left-bar" style="background-color: {menu.dominantColor}; border: 1px solid #c7c7c72b;box-shadow: 0 0 5px #0000003b; {menu.selected !== 3 ? 'border-radius: 0.5rem;' : ''}">
+	<div id="left-bar" style="background-color: {menu.dominantColor}; padding-bottom: 0.5rem; border: 1px solid #c7c7c72b;box-shadow: 0 0 5px #0000003b; {menu.selected !== 3 ? 'border-radius: 0.5rem;' : ''}">
 		<h1 id="logo">Logo</h1>
 		<Link to="/home" style="{styleButton}{menu.selected === 0 ? 'background-color: #c7c7c7af;' : ''}">
 			<img src="../assets/img/home.png" alt="home" />
@@ -21,8 +21,11 @@
 		<Link to="/download" style="{styleButton}{menu.selected === 6 ? 'background-color: #c7c7c7af;' : ''}">
 			<img src="../assets/img/download.png" alt="download" />
 		</Link>
-		<!-- <div style="margin-block: auto;"></div>
-		<Link to="/download" style="{styleButton}{menu.selected === 0 ? 'background-color: #c7c7c7af;' : ''}">
+		<div style="margin-block: auto;"></div>
+		<Link to="/choose_user" style="{styleButton}">
+			<img src="../assets/img/account.png" alt="settings" />
+		</Link>
+		<!-- <Link to="/download" style="{styleButton}{menu.selected === 0 ? 'background-color: #c7c7c7af;' : ''}">
 			<img src="../assets/img/settings.png" alt="settings" />
 		</Link> -->
 	</div>

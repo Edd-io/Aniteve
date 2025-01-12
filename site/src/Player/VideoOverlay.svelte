@@ -47,6 +47,8 @@
 		document.addEventListener("keydown", handleKeydown);
 		document.addEventListener('fullscreenchange', handleFullscreen);
 		const interval = setInterval(() => {
+			const progress = currentTime * 100 / duration;
+
 			fetch(serverUrl + "/api/update_progress", {
 				method: 'POST',
 				headers: {
@@ -59,10 +61,17 @@
 					totalEpisode: srcsList.length,
 					seasonId: idSelectedSeason,
 					allSeasons: allSeasons,
-					progress: currentTime * 100 / duration,
+					progress: progress ? progress : 0,
 					poster: menu.data.tmdb.poster ? menu.data.tmdb.poster : menu.data.anime.img,
+					idUser: menu.user.id,
 				})
-			})
+			}).then((response) => {
+				return response.json();
+			}).then((data) => {
+				console.log(data);
+			}).catch((error) => {
+				console.error(error);
+			});
 		}, 10000);
 		return (() => {
 			clearInterval(interval);
