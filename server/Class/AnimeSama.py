@@ -105,6 +105,7 @@ class AnimeSama:
 		season		= []
 		isInComment = False
 
+		print(response)
 		for line in response:
 			if (line.find('/*') != -1):
 				if (line.find('*/') != -1):

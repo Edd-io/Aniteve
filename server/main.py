@@ -13,9 +13,9 @@ from credientials import *
 from flask_cors import CORS
 from PIL import Image
 from io import BytesIO
-import logging
-log = logging.getLogger('werkzeug')
-log.setLevel(logging.ERROR)
+# import logging
+# log = logging.getLogger('werkzeug')
+# log.setLevel(logging.ERROR)
 
 db = Database()
 site = AnimeSama(db)

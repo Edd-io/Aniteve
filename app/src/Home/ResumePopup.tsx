@@ -59,7 +59,14 @@ const ResumePopup = ({setPopupResume, navigation}: any) => {
 	const [progressList, setProgressList] = useState<any>([]);
 
 	useEffect(() => {
-		fetch(localData.addr + '/api/get_all_progress')
+		fetch(localData.addr + '/api/get_all_progress', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': localData.token || '',
+			},
+			body: JSON.stringify({idUser: localData.user.id})
+		})
 		.then((response) => {
 			return (response.json());
 		})

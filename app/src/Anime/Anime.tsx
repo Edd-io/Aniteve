@@ -56,6 +56,7 @@ const get_data_from_tmdb = async (id: string, isMovie: boolean) => {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
+				'Authorization': localData.token || '',
 			},
 			body: JSON.stringify({url: url}),
 		});
@@ -69,6 +70,7 @@ const get_data_from_tmdb = async (id: string, isMovie: boolean) => {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
+				'Authorization': localData.token || '',
 			},
 			body: JSON.stringify({url: url}),
 		});
@@ -111,6 +113,7 @@ const get_data_from_tmdb = async (id: string, isMovie: boolean) => {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json',
+			'Authorization': localData.token || '',
 		},
 		body: JSON.stringify({url: url}),
 	});
@@ -122,6 +125,7 @@ const get_data_from_tmdb = async (id: string, isMovie: boolean) => {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
+				'Authorization': localData.token || '',
 			},
 			body: JSON.stringify({url: fallbackUrl}),
 		});
@@ -184,6 +188,7 @@ const AnimeScreen = () => {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
+				'Authorization': localData.token || '',
 			},
 			body: JSON.stringify({url: anime.url, serverUrl: localData.addr}),
 		}).then((response) => {
@@ -227,12 +232,14 @@ const AnimeScreen = () => {
 		}).catch((error) => {
 			console.warn(error);
 		});
+		
 		fetch(localData.addr + '/api/get_progress', {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
+				'Authorization': localData.token || '',
 			},
-			body: JSON.stringify({id: anime.id}),
+			body: JSON.stringify({id: anime.id, idUser: localData.user.id}),
 		}).then((response) => {
 			return response.json();
 		}).then((data) => {
@@ -250,6 +257,7 @@ const AnimeScreen = () => {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
+				'Authorization': localData.token || '',
 			}, 
 			body: JSON.stringify({url: anime.url, season: allSeasons[idSelectedSeason], serverUrl: localData.addr}),
 		}).then((response) => {

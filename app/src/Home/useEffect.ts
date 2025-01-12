@@ -1,6 +1,7 @@
 import {NativeModules, DeviceEventEmitter, Keyboard} from 'react-native';
 import {range, arrIdAnime, last} from './Home';
 import { localData } from '../Default';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const {TestNativeModule} = NativeModules;
 
@@ -68,10 +69,15 @@ function fetchCompleteAnimeList(setAnimeList: any, anime_list: any, range: any, 
 {
 	if (!(localData.addr?.length))
 		return ;
-	fetch(localData.addr + '/api/get_all_anime').then((response) => {
+	fetch(localData.addr + '/api/get_all_anime', {
+		method: 'GET',
+		headers: {
+			'Content-Type': 'application/json',
+			'Authorization': localData.token || '',
+		},
+	}).then((response) => {
 		return (response.json());
 	}).then((data) => {
-		console.log(data);
 		let animeList = data;
 		for (let i = 0; i < animeList.length; i++)
 			animeList[i].idInList = i + 1;
