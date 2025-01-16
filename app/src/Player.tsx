@@ -82,6 +82,7 @@ const PlayerScreen = () => {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json',
+						'Authorization': localData.token || '',
 					},
 					body: JSON.stringify({
 						id: stateData.back.id,
@@ -91,6 +92,7 @@ const PlayerScreen = () => {
 						allSeasons: stateData.season,
 						progress: pourcent,
 						poster: stateData.poster,
+						idUser: localData.user.id,
 					})
 				}).then((response) => {return response.json()})
 				.then((stateData) => {
@@ -139,6 +141,7 @@ const PlayerScreen = () => {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
+					'Authorization': localData.token || '',
 				}, 
 				body: JSON.stringify({url: stateData.url, season: stateData.season[stateData.selectedSeasons], serverUrl: localData.addr}),
 			}).then((response) => {
@@ -158,6 +161,7 @@ const PlayerScreen = () => {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
+				'Authorization': localData.token || '',
 			},
 			body: JSON.stringify({
 				serverUrl: localData.addr,
@@ -373,7 +377,10 @@ const PlayerScreen = () => {
 					setTotalTime(dataLoad.duration);
 					setOnLoading(false);
 					if (stateData.resumeTime)
+					{
 						videoRef.current?.seek((stateData.resumeTime / 100) * dataLoad.duration);
+						stateData.resumeTime = 0;
+					}
 					setResolution(dataLoad.naturalSize.width + 'x' + dataLoad.naturalSize.height);
 				}}
 				onProgress={(stateData) => {

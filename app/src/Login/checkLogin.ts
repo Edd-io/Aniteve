@@ -17,6 +17,7 @@ function checkLogin(serverAddr: string, password: string, setTokenValid: any)
 		if (data.token)
 		{
 			localData.token = data.token;
+			localData.addr = serverAddr;
 			AsyncStorage.setItem('token', data.token);
 			AsyncStorage.setItem('serverAddress', serverAddr);
 			setTokenValid(1);

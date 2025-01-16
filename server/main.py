@@ -23,6 +23,7 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = ''.join(random.choices(string.ascii_letters + string.digits, k=20))
 download = Downloader(db)
 CORS(app)
+list_available_ip = []
 
 def generate_token():
     return (jwt.encode({}, app.config['SECRET_KEY'], algorithm='HS256'))
@@ -64,9 +65,8 @@ def check_token():
 		return ({'status': 'success'})
 	except Exception as e:
 		return ({'error': str(e)})
-
-@app.route('/api/add_user', methods=['POST'])
-def add_user():
+	
+def check_token_in_request():
 	if (request.headers.get('Authorization') == None or decode_token(request.headers.get('Authorization')) == None):
 		return (Response(
 			response=json.dumps({'error': 'Invalid or missing token'}),
@@ -74,6 +74,14 @@ def add_user():
 			mimetype='application/json',
 			headers={'Access-Control-Allow-Origin': '*'}
 		))
+	return (None)
+
+@app.route('/api/add_user', methods=['POST'])
+def add_user():
+	token_valid = check_token_in_request()
+
+	if (token_valid != None):
+		return (token_valid)
 	need_keys = ['name']
 	data = request.get_json()
 
@@ -88,13 +96,10 @@ def add_user():
 
 @app.route('/api/get_users')
 def get_users():
-	if (request.headers.get('Authorization') == None or decode_token(request.headers.get('Authorization')) == None):
-		return (Response(
-			response=json.dumps({'error': 'Invalid or missing token'}),
-			status=401,
-			mimetype='application/json',
-			headers={'Access-Control-Allow-Origin': '*'}
-		))
+	token_valid = check_token_in_request()
+
+	if (token_valid != None):
+		return (token_valid)
 	try:
 		users = db.get_users()
 		return (users)
@@ -103,13 +108,10 @@ def get_users():
 	
 @app.route('/api/get_name', methods=['POST'])
 def get_name():
-	if (request.headers.get('Authorization') == None or decode_token(request.headers.get('Authorization')) == None):
-		return (Response(
-			response=json.dumps({'error': 'Invalid or missing token'}),
-			status=401,
-			mimetype='application/json',
-			headers={'Access-Control-Allow-Origin': '*'}
-		))
+	token_valid = check_token_in_request()
+
+	if (token_valid != None):
+		return (token_valid)
 	need_keys = ['id']
 	data = request.get_json()
 
@@ -125,13 +127,10 @@ def get_name():
 
 @app.route('/api/get_all_anime')
 def get_all_anime():
-	if (request.headers.get('Authorization') == None or decode_token(request.headers.get('Authorization')) == None):
-		return (Response(
-			response=json.dumps({'error': 'Invalid or missing token'}),
-			status=401,
-			mimetype='application/json',
-			headers={'Access-Control-Allow-Origin': '*'}
-		))
+	token_valid = check_token_in_request()
+
+	if (token_valid != None):
+		return (token_valid)
 	try:
 		anime_list = db.get_all_anime()
 		all_anime = []
@@ -160,13 +159,10 @@ def get_all_anime():
 
 @app.route('/api/get_anime_season', methods=['POST'])
 def get_anime_season():
-	if (request.headers.get('Authorization') == None or decode_token(request.headers.get('Authorization')) == None):
-		return (Response(
-			response=json.dumps({'error': 'Invalid or missing token'}),
-			status=401,
-			mimetype='application/json',
-			headers={'Access-Control-Allow-Origin': '*'}
-		))
+	token_valid = check_token_in_request()
+
+	if (token_valid != None):
+		return (token_valid)
 	need_keys = ['url']
 	anime = request.get_json()
 
@@ -191,13 +187,10 @@ def get_anime_season():
 
 @app.route('/api/get_anime_episodes', methods=['POST'])
 def get_anime_episodes():
-	if (request.headers.get('Authorization') == None or decode_token(request.headers.get('Authorization')) == None):
-		return (Response(
-			response=json.dumps({'error': 'Invalid or missing token'}),
-			status=401,
-			mimetype='application/json',
-			headers={'Access-Control-Allow-Origin': '*'}
-		))
+	token_valid = check_token_in_request()
+
+	if (token_valid != None):
+		return (token_valid)
 	need_keys = ['url', 'serverUrl', 'season']
 
 	try:
@@ -222,16 +215,15 @@ def get_anime_episodes():
 	
 @app.route('/api/srcFile', methods=['POST'])
 def srcFile():
-	if (request.headers.get('Authorization') == None or decode_token(request.headers.get('Authorization')) == None):
-		return (Response(
-			response=json.dumps({'error': 'Invalid or missing token'}),
-			status=401,
-			mimetype='application/json',
-			headers={'Access-Control-Allow-Origin': '*'}
-		))
+	token_valid = check_token_in_request()
+
+	if (token_valid != None):
+		return (token_valid)
 	url = 'https://' + request.url.split('?', 1)[1]
 	need_keys = ['serverUrl']
 
+	if (request.remote_addr not in list_available_ip):
+		list_available_ip.append(request.remote_addr)
 	try:
 		anime = request.get_json()
 		if (url == 'https://'):
@@ -255,7 +247,13 @@ def srcFile():
 
 @app.route('/api/video')
 def video():
-	# do check token
+	if (request.remote_addr not in list_available_ip):
+		return (Response(
+			response=json.dumps({'error': 'Access denied'}),
+			status=403,
+			mimetype='application/json',
+			headers={'Access-Control-Allow-Origin': '*'}
+		))
 	url = 'https://' + request.url.split('?', 1)[1]
 	request_host = request.url_root
 
@@ -282,13 +280,10 @@ def video():
 
 @app.route('/api/update_progress', methods=['POST'])
 def update_progress():
-	if (request.headers.get('Authorization') == None or decode_token(request.headers.get('Authorization')) == None):
-		return (Response(
-			response=json.dumps({'error': 'Invalid or missing token'}),
-			status=401,
-			mimetype='application/json',
-			headers={'Access-Control-Allow-Origin': '*'}
-		))
+	token_valid = check_token_in_request()
+
+	if (token_valid != None):
+		return (token_valid)
 	need_keys = ['id', 'episode', 'seasonId', 'progress', 'totalEpisode', 'allSeasons', 'poster', 'idUser']
 	anime = request.get_json()
 
@@ -303,13 +298,10 @@ def update_progress():
 	
 @app.route('/api/get_progress', methods=['POST'])
 def get_progress():
-	if (request.headers.get('Authorization') == None or decode_token(request.headers.get('Authorization')) == None):
-		return (Response(
-			response=json.dumps({'error': 'Invalid or missing token'}),
-			status=401,
-			mimetype='application/json',
-			headers={'Access-Control-Allow-Origin': '*'}
-		))
+	token_valid = check_token_in_request()
+
+	if (token_valid != None):
+		return (token_valid)
 	need_keys = ['id', 'idUser']
 	anime = request.get_json()
 
@@ -324,13 +316,10 @@ def get_progress():
 	
 @app.route('/api/get_all_progress', methods=['POST'])
 def get_all_progress():
-	if (request.headers.get('Authorization') == None or decode_token(request.headers.get('Authorization')) == None):
-		return (Response(
-			response=json.dumps({'error': 'Invalid or missing token'}),
-			status=401,
-			mimetype='application/json',
-			headers={'Access-Control-Allow-Origin': '*'}
-		))
+	token_valid = check_token_in_request()
+
+	if (token_valid != None):
+		return (token_valid)
 	need_keys = ['idUser']
 	anime = request.get_json()
 
@@ -345,13 +334,10 @@ def get_all_progress():
 	
 @app.route('/api/tmdb', methods=['POST'])
 def tmdb():
-	if (request.headers.get('Authorization') == None or decode_token(request.headers.get('Authorization')) == None):
-		return (Response(
-			response=json.dumps({'error': 'Invalid or missing token'}),
-			status=401,
-			mimetype='application/json',
-			headers={'Access-Control-Allow-Origin': '*'}
-		))
+	token_valid = check_token_in_request()
+
+	if (token_valid != None):
+		return (token_valid)
 	need_keys = ['url']
 	data = request.get_json()
 
@@ -373,13 +359,10 @@ def tmdb():
 	
 @app.route('/api/get_average_color', methods=['POST'])
 def get_average_color():
-	if (request.headers.get('Authorization') == None or decode_token(request.headers.get('Authorization')) == None):
-		return (Response(
-			response=json.dumps({'error': 'Invalid or missing token'}),
-			status=401,
-			mimetype='application/json',
-			headers={'Access-Control-Allow-Origin': '*'}
-		))
+	token_valid = check_token_in_request()
+
+	if (token_valid != None):
+		return (token_valid)
 	need_keys = ['url']
 	data = request.get_json()
 
@@ -405,13 +388,10 @@ def get_average_color():
 
 @app.route('/api/download', methods=['POST'])
 def download_func():
-	if (request.headers.get('Authorization') == None or decode_token(request.headers.get('Authorization')) == None):
-		return (Response(
-			response=json.dumps({'error': 'Invalid or missing token'}),
-			status=401,
-			mimetype='application/json',
-			headers={'Access-Control-Allow-Origin': '*'}
-		))
+	token_valid = check_token_in_request()
+
+	if (token_valid != None):
+		return (token_valid)
 	need_keys = ['src', 'name', 'episode', 'season', 'serverUrl', 'poster']
 	data = request.get_json()
 
@@ -426,13 +406,10 @@ def download_func():
 
 @app.route('/api/get_status_download')
 def get_status_download():
-	if (request.headers.get('Authorization') == None or decode_token(request.headers.get('Authorization')) == None):
-		return (Response(
-			response=json.dumps({'error': 'Invalid or missing token'}),
-			status=401,
-			mimetype='application/json',
-			headers={'Access-Control-Allow-Origin': '*'}
-		))
+	token_valid = check_token_in_request()
+
+	if (token_valid != None):
+		return (token_valid)
 	try:
 		status = download.get_status()
 		return (status)
@@ -441,13 +418,10 @@ def get_status_download():
 	
 @app.route('/api/del_download', methods=['POST'])
 def delete_download():
-	if (request.headers.get('Authorization') == None or decode_token(request.headers.get('Authorization')) == None):
-		return (Response(
-			response=json.dumps({'error': 'Invalid or missing token'}),
-			status=401,
-			mimetype='application/json',
-			headers={'Access-Control-Allow-Origin': '*'}
-		))
+	token_valid = check_token_in_request()
+
+	if (token_valid != None):
+		return (token_valid)
 	need_keys = ['id']
 	data = request.get_json()
 
@@ -462,7 +436,13 @@ def delete_download():
 	
 @app.route('/api/download/<name>')
 def downloadEp(name):
-	# do check token
+	if (request.remote_addr not in list_available_ip):
+		return (Response(
+			response=json.dumps({'error': 'Access denied'}),
+			status=403,
+			mimetype='application/json',
+			headers={'Access-Control-Allow-Origin': '*'}
+		))
 	try:
 		return (download.download(name))
 	except Exception as e:

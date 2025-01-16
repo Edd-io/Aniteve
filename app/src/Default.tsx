@@ -47,11 +47,7 @@ const Default = () => {
 	}, [serverAddress]);
 
 	if (serverAddress == null || timeSkip == null || tokenValid == -1)
-	{
-		return (
-			<LoadingScreen animeName='Aniteve' />
-		);
-	}
+		return (<LoadingScreen animeName='Aniteve' />);
 	else if (tokenValid == 0)
 		return (<Login setIsConnecting={setTokenValid} />);
 	else if (tokenValid == 1 && user.id == -1)

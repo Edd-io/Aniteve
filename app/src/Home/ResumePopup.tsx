@@ -71,7 +71,6 @@ const ResumePopup = ({setPopupResume, navigation}: any) => {
 			return (response.json());
 		})
 		.then((json) => {
-			console.log(json);
 			setProgressList(json);
 		})
 		.catch((error) => {
