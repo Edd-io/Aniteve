@@ -133,7 +133,6 @@ class Database:
 					status = 1
 					anime['progress'] = 100
 		if isPresent:
-			print('Updating id ' + str(anime['id']))
 			cursor.execute('''
 				UPDATE progress
 				SET episode = ?,
@@ -144,7 +143,6 @@ class Database:
 				WHERE id_anime = ? AND id_user = ?
 			''', (anime['episode'], anime['allSeasons'][anime['seasonId']], anime['progress'], status, anime['id'], anime['idUser']))
 		else:
-			print('Inserting id ' + str(anime['id']))
 			cursor.execute('''
 				INSERT INTO progress (id_anime, episode, season, progress, status, poster, id_user)
 				VALUES (?, ?, ?, ?, ?, ?, ?)''', (anime['id'], anime['episode'], anime['allSeasons'][anime['seasonId']], anime['progress'], status, anime['poster'], anime['idUser']))

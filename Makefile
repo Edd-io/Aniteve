@@ -6,7 +6,7 @@
 #    By: edbernar <edbernar@student.42angouleme.    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/10/28 19:26:13 by tomoron           #+#    #+#              #
-#    Updated: 2025/01/18 12:15:35 by edbernar         ###   ########.fr        #
+#    Updated: 2025/01/18 19:54:09 by edbernar         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -37,6 +37,7 @@ fclean:clean
 	docker system prune -af
 
 build:
+	cd $(WEBSITE_PATH) && npm install
 	cd $(WEBSITE_PATH) && npm run build
 
 re: fclean all

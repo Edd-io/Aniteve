@@ -64,6 +64,7 @@
 			idSelectedSeason={idSelectedSeason} 
 			allSeasons={data.anime.season}
 			progress={data.anime.progress}
+			nbEpisodes={nbEpisodes}
 		/>
 		<div class='description'>
 			<div style="display: flex;">

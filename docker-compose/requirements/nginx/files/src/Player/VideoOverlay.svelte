@@ -10,6 +10,7 @@
 	export let idSelectedSeason: number;
 	export let allSeasons: any;
 	export let progress: any;
+	export let nbEpisodes: number;
 
 	const	serverUrl					= '';
 
@@ -58,7 +59,7 @@
 				body: JSON.stringify({
 					id: menu.data.anime.id,
 					episode: selectedEpisode + 1,
-					totalEpisode: srcsList.length,
+					totalEpisode: nbEpisodes,
 					seasonId: idSelectedSeason,
 					allSeasons: allSeasons,
 					progress: progress ? progress : 0,
