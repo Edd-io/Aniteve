@@ -1,0 +1,8 @@
+flask
+bs4
+requests
+m3u8
+PyJWT
+gevent
+flask_cors
+pillow

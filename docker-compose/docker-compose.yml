@@ -1,0 +1,39 @@
+services:
+  nginx:
+    container_name: nginx_aniteve
+    image: nginx:latest
+    ports:
+      - "443:443"
+    networks:
+      - aniteve
+    depends_on:
+      - server_flask
+    build:
+      context: requirements/nginx
+      args:
+        SERVER_HOST: ${SERVER_HOST}
+        SERVER_URL: ${SERVER_URL}
+
+  server_flask:
+    build:
+      context: requirements/server_flask
+      args:
+        KEY_API_TMDB: ${KEY_API_TMDB}
+        PASSWORD_SERVER: ${PASSWORD_SERVER}
+        SECRET_KEY: ${SECRET_KEY}
+    container_name: server_flask_aniteve
+    env_file: .env
+    networks:
+      - aniteve
+    volumes:
+      - aniteve_data:/app/data/
+    
+
+
+
+volumes:
+  aniteve_data:
+
+networks:
+  aniteve:
+    driver: bridge

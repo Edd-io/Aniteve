@@ -75,5 +75,7 @@ yarn-error.log
 todo:whatdid.md
 .vscode
 credientials.py
+credientials.py
 bg_tv.jpg
 *.mp4
+.env
