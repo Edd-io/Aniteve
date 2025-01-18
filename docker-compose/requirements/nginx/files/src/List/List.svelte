@@ -1,5 +1,6 @@
 <script lang='ts'>
 	import { onMount } from 'svelte';
+	import { navigate } from 'svelte-routing';
 
 	export let menu: any;
 
@@ -72,8 +73,9 @@
 			animeResumed.style.animation = 'choose 0.5s';
 			animeResumed.style.opacity = '0';
 			setTimeout(() => {
-				animeResumed.remove();
+				menu.data = data;
 				menu.selected = 3;
+				navigate('/anime', {replace: true});
 			}, 400);
 		}, 500);
 	}

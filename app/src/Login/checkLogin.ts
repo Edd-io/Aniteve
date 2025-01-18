@@ -14,6 +14,7 @@ function checkLogin(serverAddr: string, password: string, setTokenValid: any)
 	}).then((response) => {
 		return (response.json());
 	}).then((data) => {
+		console.log(data);
 		if (data.token)
 		{
 			localData.token = data.token;
@@ -25,6 +26,7 @@ function checkLogin(serverAddr: string, password: string, setTokenValid: any)
 		else
 			setTokenValid(0);
 	}).catch((error) => {
+		console.error('Error:', error);
 		setTokenValid(0);
 	});
 }
