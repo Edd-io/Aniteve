@@ -35,6 +35,7 @@ JS_FUNCTION			= '''
 class AnimeSama:
 	url = URL_AS + "catalogue/listing_all.php"
 	thread_status_anime = None
+	thread_new_anime = None
 	db = None
 	disable_get_anime_status = False
 
@@ -42,8 +43,10 @@ class AnimeSama:
 		self.db = db
 		self.get_anime_list()
 		if self.disable_get_anime_status == False:
-			thread_status_anime = threading.Thread(target=self.get_anime_status)
-			thread_status_anime.start()
+			self.thread_status_anime = threading.Thread(target=self.get_anime_status)
+			self.thread_status_anime.start()
+			self.thread_new_anime = threading.Thread(target=self.get_new_animes)
+			self.thread_new_anime.start()
 		else:
 			print("\033[91mGet anime status is disabled.\033[0m")
 	
@@ -235,8 +238,7 @@ class AnimeSama:
 				posEnd += 1
 			url = serverUrl + SERV_URL_VIDEO + line[pos + 8:posEnd]
 		return (url)
-	
-	# todo : add new func to get new anime
+
 	def get_anime_status(self):
 		while (1):
 			try:
@@ -280,8 +282,18 @@ class AnimeSama:
 				self.db.update_anime_status(data)
 				sleep(1800)
 			except Exception as e:
-				print(e)
 				sleep(1800)
 				pass
 		self.thread_status_anime = None
+		return
+	
+	def get_new_animes(self):
+		while (1):
+			try:
+				sleep(86400)
+				self.get_anime_list()
+			except Exception as e:
+				sleep(86400)
+				pass
+		self.thread_new_anime = None
 		return

@@ -3,18 +3,12 @@ services:
     container_name: nginx_aniteve
     image: nginx:latest
     ports:
-      - "80:80"
-      - "0.0.0.0:443:443"
+      - "8555:8555"
     networks:
       - aniteve
-    env_file: .env
     depends_on:
       - server_flask
-    build:
-      context: requirements/nginx
-      args:
-        SERVER_HOST: ${SERVER_HOST}
-        SERVER_URL: ${SERVER_URL}
+    build: requirements/nginx
 
   server_flask:
     build:
@@ -30,9 +24,6 @@ services:
     volumes:
       - aniteve_data:/app/data/
     
-
-
-
 volumes:
   aniteve_data:
 

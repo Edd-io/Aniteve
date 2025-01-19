@@ -30,5 +30,4 @@ RUN echo 'secret_key="'$SECRET_KEY'"' >> credientials.py
 
 STOPSIGNAL SIGKILL
 
-# ENTRYPOINT ["gunicorn", "--worker-class", "gevent", "-w", "8", "-t", "4", "main:app", "-b", "0.0.0.0:8000"]
-ENTRYPOINT ["python3", "main.py"]
+ENTRYPOINT ["gunicorn", "--worker-class", "gevent", "-w", "8", "-t", "4", "main:app", "-b", "0.0.0.0:8000"]
