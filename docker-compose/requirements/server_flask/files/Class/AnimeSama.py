@@ -34,22 +34,41 @@ JS_FUNCTION			= '''
 
 class AnimeSama:
 	url = URL_AS + "catalogue/listing_all.php"
+	_instance = None
+	_lock = threading.Lock()
 	thread_status_anime = None
 	thread_new_anime = None
-	db = None
 	disable_get_anime_status = False
+
+	def __new__(cls, db):
+		if not cls._instance:
+			with cls._lock:
+				if not cls._instance:
+					cls._instance = super(AnimeSama, cls).__new__(cls)
+					cls._instance.db = db
+					cls._instance.threads_started = False
+		return (cls._instance)
 
 	def __init__(self, db):
 		self.db = db
-		self.get_anime_list()
-		if self.disable_get_anime_status == False:
+		if not self.threads_started:
+			self.get_anime_list()
+			if not self.disable_get_anime_status:
+				self.start_threads()
+			else:
+				print("\033[91mGet anime status is disabled.\033[0m")
+
+	def start_threads(self):
+		if not self.threads_started:
+			print("Starting threads...")
 			self.thread_status_anime = threading.Thread(target=self.get_anime_status)
 			self.thread_status_anime.start()
 			self.thread_new_anime = threading.Thread(target=self.get_new_animes)
 			self.thread_new_anime.start()
+			self.threads_started = True
 		else:
-			print("\033[91mGet anime status is disabled.\033[0m")
-	
+			print("\033[93mThreads already running.\033[0m")
+
 	def get_anime_list(self):
 		response	= requests.get(self.url)
 		soup		= BeautifulSoup(response.text, 'html.parser')
