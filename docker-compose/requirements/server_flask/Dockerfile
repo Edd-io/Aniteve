@@ -12,10 +12,12 @@ RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
 ARG KEY_API_TMDB
 ARG PASSWORD_SERVER
 ARG SECRET_KEY
+ARG WEBHOOK_URL
 
 ENV KEY_API_TMDB=$KEY_API_TMDB
 ENV PASSWORD_SERVER=$PASSWORD_SERVER
 ENV SECRET_KEY=$SECRET_KEY
+ENV WEBHOOK_URL=$WEBHOOK_URL
 
 COPY files/ /app
 
@@ -26,8 +28,8 @@ RUN pip install -r requirements.txt --b
 RUN echo 'key_api_tmdb="'$KEY_API_TMDB'"' >> credientials.py
 RUN echo 'password="'$PASSWORD_SERVER'"' >> credientials.py
 RUN echo 'secret_key="'$SECRET_KEY'"' >> credientials.py
-
+RUN echo 'webhook_url="'$WEBHOOK_URL'"' >> credientials.py
 
 STOPSIGNAL SIGKILL
 
-ENTRYPOINT ["gunicorn", "--worker-class", "gevent", "-w", "8", "-t", "4", "main:app", "-b", "0.0.0.0:8000"]
+ENTRYPOINT ["gunicorn", "--preload", "--workers", "8", "--threads", "4", "-t", "60", "main:app", "-b", "0.0.0.0:8000"]

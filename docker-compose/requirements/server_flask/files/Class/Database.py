@@ -1,11 +1,31 @@
 import sqlite3
+import threading
 import ast
 import os
+import requests
+from credientials import *
+import time
 
 class Database:
+	_instance = None
+	_lock = threading.Lock()
+	thread_backup = None
+	threads_started = False
+
+	def __new__(cls):
+		if not cls._instance:
+			with cls._lock:
+				if not cls._instance:
+					cls._instance = super(Database, cls).__new__(cls)
+		return (cls._instance)
+
 	def __init__(self):
 		self.conn = sqlite3.connect('data/database.db', check_same_thread=False)
 		self.create_table()
+		if not self.threads_started:
+			self.thread_backup = threading.Thread(target=self.create_backup)
+			self.thread_backup.start()
+			self.threads_started = True
 
 	def create_table(self):
 		cursor = self.conn.cursor()
@@ -290,3 +310,29 @@ class Database:
 			WHERE id = ?''', (id,))
 		self.conn.commit()
 		cursor.close()
+
+	def create_backup(self):
+		try:
+			if (webhook_url == ''):
+				print('Webhook URL not set, backup disabled')
+		except:
+			print('Webhook URL not set, backup disabled')
+			return
+		time.sleep(10)
+		while (1):
+			try:
+				with open('data/database.db', 'rb') as file:
+					files = {'file': ("database.db", file)}
+					data = {'content': 'Nouvelle sauvegarde de la base de données'}
+					
+					response = requests.post(webhook_url, data=data, files=files)
+					
+					if response.status_code == 204:
+						print("Fichier envoyé avec succès !")
+					else:
+						print(f"Erreur lors de l'envoi : {response.status_code} - {response.text}")
+			except Exception as e:
+				message = f"Erreur lors de l'envoi : {e}"
+				response = requests.post(webhook_url, data={'content': message})
+				print(message)
+			time.sleep(86400)

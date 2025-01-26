@@ -16,8 +16,7 @@
 	const	location = window.location.pathname;
 
 	let menu: any = {
-		selected: 0 as number,
-		// selected: -1 as number,
+		selected: -1 as number,
 		data: {} as any,
 		dominantColor: '' as string,
 		user: {
@@ -26,25 +25,25 @@
 		}
 	}; // 0: home, 1: search,  2: list, 3: anime, 4: player, 6: Download, 7: Login, 8: ChooseUser
 
-	// if (localStorage.getItem('token'))
-	// {
-	// 	checkToken().then(() => {
-	// 		get_name();
-	// 		if (location === '/')
-	// 			navigate('/home', {replace: true});
-	// 	}).catch(() => {
-	// 		navigate('/', {replace: true});
-	// 		history.replaceState(null, 'Login', '/');
-	// 		menu.selected = 7;
-	// 	});
-	// 	init();
-	// }
-	// else
-	// {
-	// 	navigate('/', {replace: true});
-	// 	history.replaceState(null, 'Login', '/');
-	// 	menu.selected = 7;
-	// }
+	if (localStorage.getItem('token'))
+	{
+		checkToken().then(() => {
+			get_name();
+			if (location === '/')
+				navigate('/home', {replace: true});
+		}).catch(() => {
+			navigate('/', {replace: true});
+			history.replaceState(null, 'Login', '/');
+			menu.selected = 7;
+		});
+		init();
+	}
+	else
+	{
+		navigate('/', {replace: true});
+		history.replaceState(null, 'Login', '/');
+		menu.selected = 7;
+	}
 
 	function init()
 	{

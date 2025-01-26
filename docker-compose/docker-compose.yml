@@ -17,6 +17,7 @@ services:
         KEY_API_TMDB: ${KEY_API_TMDB}
         PASSWORD_SERVER: ${PASSWORD_SERVER}
         SECRET_KEY: ${SECRET_KEY}
+        WEBHOOK_URL: ${WEBHOOK_URL}
     container_name: server_flask_aniteve
     env_file: .env
     networks:
