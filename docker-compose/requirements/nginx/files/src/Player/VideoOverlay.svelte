@@ -335,6 +335,9 @@
 						else
 							video.pause();
 					}}
+					on:error={() => {
+						deadSource = true;
+					}}
 					preload="auto"
 				>
 				</video>
