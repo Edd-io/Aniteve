@@ -1,6 +1,6 @@
 from flask import Flask, request, Response
 from Class.Database import Database
-from Class.AnimeSama import AnimeSama
+from Class.AnimeSama.AnimeSama import AnimeSama
 from Class.Proxy import Proxy
 from Class.Downloader import Downloader
 import ast

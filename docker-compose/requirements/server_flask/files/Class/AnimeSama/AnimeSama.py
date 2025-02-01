@@ -1,4 +1,5 @@
 from bs4 import BeautifulSoup
+from .getAllAnime import getAllAnime
 from time import sleep
 import subprocess
 import threading
@@ -38,7 +39,7 @@ class AnimeSama:
 	_lock = threading.Lock()
 	thread_status_anime = None
 	thread_new_anime = None
-	disable_get_anime_status = False
+	disable_get_anime_status = True
 
 	def __new__(cls, db):
 		if not cls._instance:
@@ -70,56 +71,7 @@ class AnimeSama:
 			print("\033[93mThreads already running.\033[0m")
 
 	def get_anime_list(self):
-		response	= requests.get(self.url)
-		soup		= BeautifulSoup(response.text, 'html.parser')
-		anime_list	= soup('div', class_='Anime')
-		anime_list2	= soup('div', class_='Anime,')
-		all_anime	= []
-
-		for i, anime in enumerate(anime_list):
-			for j, animeClass in enumerate(anime['class']):
-				if animeClass.find(',') != -1:
-					anime_list[i]['class'][j] = animeClass.split(',')[0]
-			title = anime.find('h1').text
-			alternative_title = anime.find('p').text
-			if alternative_title == '':
-				alternative_title = None
-			url = anime.find('a')['href']
-			if (url[len(url) - 1] == '/'):
-				url = url[:-1]
-			url = "".join(url.split())
-			img = anime.find('img')['src']
-			all_anime.append({'title': title, 'alternative_title': alternative_title, 'genre': anime['class'], 'url': url, 'img': img})
-		for i, anime in enumerate(anime_list2):
-			for j, animeClass in enumerate(anime['class']):
-				if animeClass.find(',') != -1:
-					anime_list2[i]['class'][j] = animeClass.split(',')[0]
-			title = anime.find('h1').text
-			alternative_title = anime.find('p').text
-			if alternative_title == '':
-				alternative_title = None
-			url = anime.find('a')['href']
-			if (url[len(url) - 1] == '/'):
-				url = url[:-1]
-			url = "".join(url.split())
-			img = anime.find('img')['src']
-			all_anime.append({'title': title, 'alternative_title': alternative_title, 'genre': anime['class'], 'url': url, 'img': img})
-		for anime in all_anime:
-			anime['title'] = anime['title'].title()
-			if anime['alternative_title']:
-				anime['alternative_title'] = anime['alternative_title'].title()
-			anime['genre'] = [genre.replace('-', ' ').capitalize() for genre in anime['genre']]
-			if "Cardlistanime" in anime['genre']:
-				anime['genre'].remove("Cardlistanime")
-			k = len(anime['genre']) - 1
-			while k >= 0:
-				if anime['genre'][k].strip() == '':
-					anime['genre'].pop(k)
-				k -= 1
-
-		all_anime.sort(key=lambda x: x['title'])
-		for anime in all_anime:
-			self.db.insert_anime(anime)
+		getAllAnime(self.db)
 
 	def get_anime_season(self, anime):
 		response	= requests.get(anime['url'])

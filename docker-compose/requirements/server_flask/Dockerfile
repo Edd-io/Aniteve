@@ -25,11 +25,12 @@ WORKDIR /app
 
 RUN pip install -r requirements.txt --b
 
-RUN echo 'key_api_tmdb="'$KEY_API_TMDB'"' >> credientials.py
+RUN echo 'key_api_tmdb="'$KEY_API_TMDB'"' > credientials.py
 RUN echo 'password="'$PASSWORD_SERVER'"' >> credientials.py
 RUN echo 'secret_key="'$SECRET_KEY'"' >> credientials.py
 RUN echo 'webhook_url="'$WEBHOOK_URL'"' >> credientials.py
 
 STOPSIGNAL SIGKILL
 
-ENTRYPOINT ["gunicorn", "--preload", "--workers", "8", "--threads", "4", "-t", "60", "main:app", "-b", "0.0.0.0:8000"]
+# ENTRYPOINT ["gunicorn", "--preload", "--workers", "8", "--threads", "4", "-t", "60", "main:app", "-b", "0.0.0.0:8000"]
+ENTRYPOINT [ "python3", "main.py" ]
