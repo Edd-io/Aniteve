@@ -78,10 +78,16 @@ class Proxy:
 		}
 		if 'Range' in request.headers:
 			headers['Range'] = request.headers['Range']
-		response = requests.get(url, headers=headers, stream=True)
-		return Response(
-			response.iter_content(chunk_size=1024),
-			content_type=response.headers.get('Content-Type', 'application/octet-stream'),
-			status=response.status_code,
-			headers={k: v for k, v in response.headers.items() if k.lower() in {'content-type', 'content-range', 'accept-ranges'}}
-		)
+		try:
+			response = requests.get(url, headers=headers, stream=True, timeout=10)
+			return Response(
+				response.iter_content(chunk_size=1024),
+				content_type=response.headers.get('Content-Type', 'application/octet-stream'),
+				status=response.status_code,
+				headers={k: v for k, v in response.headers.items() if k.lower() in {'content-type', 'content-range', 'accept-ranges'}}
+			)
+		except Exception as e:
+			return Response(
+				response='Erreur lors de la récupération de la vidéo',
+				status=404,
+			)

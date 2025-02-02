@@ -2,7 +2,7 @@ FROM ubuntu:latest
 
 RUN apt update
 RUN apt upgrade -y
-RUN apt install python3 python3-pip gunicorn -y
+RUN apt install python3 python3-pip uvicorn -y
 RUN apt-get update && apt-get install -y curl build-essential
 
 RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
@@ -32,5 +32,5 @@ RUN echo 'webhook_url="'$WEBHOOK_URL'"' >> credientials.py
 
 STOPSIGNAL SIGKILL
 
-# ENTRYPOINT ["gunicorn", "--preload", "--workers", "8", "--threads", "4", "-t", "60", "main:app", "-b", "0.0.0.0:8000"]
-ENTRYPOINT [ "python3", "main.py" ]
+ENTRYPOINT [ "python3", "-u", "main.py" ]
+# ENTRYPOINT ["hypercorn", "main:app", "--bind", "0.0.0.0:8000"]

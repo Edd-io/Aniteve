@@ -8,16 +8,8 @@ import time
 
 class Database:
 	_instance = None
-	_lock = threading.Lock()
 	thread_backup = None
 	threads_started = False
-
-	def __new__(cls):
-		if not cls._instance:
-			with cls._lock:
-				if not cls._instance:
-					cls._instance = super(Database, cls).__new__(cls)
-		return (cls._instance)
 
 	def __init__(self):
 		self.conn = sqlite3.connect('data/database.db', check_same_thread=False)

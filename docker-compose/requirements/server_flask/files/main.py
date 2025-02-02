@@ -1,4 +1,4 @@
-from flask import Flask, request, Response
+from flask import Flask, request, Response, jsonify
 from Class.Database import Database
 from Class.AnimeSama.AnimeSama import AnimeSama
 from Class.Proxy import Proxy
@@ -34,35 +34,34 @@ def decode_token(token):
 		return (None)
 
 @app.route('/api/login', methods=['POST'])
-def login():
+async def login():
 	data = request.get_json()
 	need_keys = ['password']
 
 	try:
 		for key in need_keys:
 			if key not in data:
-				return ({'error': 'Missing key ' + key})
-		print(data['password'], 'with', password)
+				return jsonify({'error': 'Missing key ' + key})
 		if (data['password'] == password):
-			return ({'token': generate_token()})
-		return ({'error': 'Invalid password'})
+			return jsonify({'token': generate_token()})
+		return jsonify({'error': 'Invalid password'})
 	except Exception as e:
-		return ({'error': str(e)})
+		return jsonify({'error': str(e)})
 	
 @app.route('/api/check_token', methods=['POST'])
-def check_token():
+async def check_token():
 	data = request.get_json()
 	need_keys = ['token']
 
 	try:
 		for key in need_keys:
 			if key not in data:
-				return ({'error': 'Missing key ' + key})
+				return jsonify({'error': 'Missing key ' + key})
 		if (decode_token(data['token']) == None):
-			return ({'error': 'Invalid token'})
-		return ({'status': 'success'})
+			return jsonify({'error': 'Invalid token'})
+		return jsonify({'status': 'success'})
 	except Exception as e:
-		return ({'error': str(e)})
+		return jsonify({'error': str(e)})
 	
 def check_token_in_request():
 	if (request.headers.get('Authorization') == None or decode_token(request.headers.get('Authorization')) == None):
@@ -75,7 +74,7 @@ def check_token_in_request():
 	return (None)
 
 @app.route('/api/add_user', methods=['POST'])
-def add_user():
+async def add_user():
 	token_valid = check_token_in_request()
 
 	if (token_valid != None):
@@ -86,26 +85,26 @@ def add_user():
 	try:
 		for key in need_keys:
 			if key not in data:
-				return ({'error': 'Missing key ' + key})
+				return jsonify({'error': 'Missing key ' + key})
 		db.insert_user(data['name'])
-		return ({'status': 'success'})
+		return jsonify({'status': 'success'})
 	except Exception as e:
-		return ({'error': str(e)})
+		return jsonify({'error': str(e)})
 
 @app.route('/api/get_users')
-def get_users():
+async def get_users():
 	token_valid = check_token_in_request()
 
 	if (token_valid != None):
 		return (token_valid)
 	try:
 		users = db.get_users()
-		return (users)
+		return jsonify(users)
 	except Exception as e:
-		return ({'error': str(e)})
+		return jsonify({'error': str(e)})
 	
 @app.route('/api/get_name', methods=['POST'])
-def get_name():
+async def get_name():
 	token_valid = check_token_in_request()
 
 	if (token_valid != None):
@@ -116,15 +115,15 @@ def get_name():
 	try:
 		for key in need_keys:
 			if key not in data:
-				return ({'error': 'Missing key ' + key})
+				return jsonify({'error': 'Missing key ' + key})
 		name = db.get_name_by_id(data['id'])
 		return (name)
 	except Exception as e:
-		return ({'error': str(e)})
+		return jsonify({'error': str(e)})
 
 
 @app.route('/api/get_all_anime')
-def get_all_anime():
+async def get_all_anime():
 	token_valid = check_token_in_request()
 
 	if (token_valid != None):
@@ -156,7 +155,7 @@ def get_all_anime():
 		))
 
 @app.route('/api/get_anime_season', methods=['POST'])
-def get_anime_season():
+async def get_anime_season():
 	token_valid = check_token_in_request()
 
 	if (token_valid != None):
@@ -167,7 +166,7 @@ def get_anime_season():
 	try:
 		for key in need_keys:
 			if key not in anime:
-				return ({'error': 'Missing key ' + key})
+				return jsonify({'error': 'Missing key ' + key})
 		season = site.get_anime_season(anime)
 		return (Response(
 			response=json.dumps({'season': season}),
@@ -184,7 +183,7 @@ def get_anime_season():
 		))
 
 @app.route('/api/get_anime_episodes', methods=['POST'])
-def get_anime_episodes():
+async def get_anime_episodes():
 	token_valid = check_token_in_request()
 
 	if (token_valid != None):
@@ -195,7 +194,7 @@ def get_anime_episodes():
 		anime = request.get_json()
 		for key in need_keys:
 			if key not in anime:
-				return ({'error': 'Missing key ' + key})
+				return jsonify({'error': 'Missing key ' + key})
 		episode = site.get_anime_episodes(anime)
 		return (Response(
 			response=json.dumps(episode),
@@ -212,7 +211,7 @@ def get_anime_episodes():
 		))
 	
 @app.route('/api/srcFile', methods=['POST'])
-def srcFile():
+async def srcFile():
 	token_valid = check_token_in_request()
 
 	if (token_valid != None):
@@ -229,7 +228,7 @@ def srcFile():
 			return {'error': 'Missing url'}
 		for key in need_keys:
 			if key not in anime:
-				return ({'error': 'Missing key ' + key})
+				return jsonify({'error': 'Missing key ' + key})
 		return (Response(
 			response=json.dumps({'src': site.get_source_file(url, anime['serverUrl'])}),
 			status=200,
@@ -245,7 +244,8 @@ def srcFile():
 		))
 
 @app.route('/api/video')
-def video():
+async def video():
+	print("Ici ca passe")
 	with lock_list_available_ip:
 		if (request.headers['X-Real-IP']not in list_available_ip):
 			return (Response(
@@ -255,7 +255,7 @@ def video():
 				headers={'Access-Control-Allow-Origin': '*'}
 			))
 	url = 'https://' + request.url.split('?', 1)[1]
-
+	print("Ici ca passe plus loin ")
 	try:
 		if (url == 'https://'):
 			return (Response(
@@ -269,14 +269,15 @@ def video():
 		elif (url.find('oneupload') != -1):
 			return (Proxy.oneupload(url))
 		elif (url.find('sendvid') != -1):
+			print('Ouais ouais on est la')
 			return (Proxy.sendvid(url))
 		else:
 			return (Proxy.vidmoly(url))
 	except Exception as e:
-		return ({'error': str(e)})
+		return jsonify({'error': str(e)})
 
 @app.route('/api/update_progress', methods=['POST'])
-def update_progress():
+async def update_progress():
 	token_valid = check_token_in_request()
 
 	if (token_valid != None):
@@ -287,14 +288,14 @@ def update_progress():
 	try:
 		for key in need_keys:
 			if key not in anime:
-				return ({'error': 'Missing key ' + key})
+				return jsonify({'error': 'Missing key ' + key})
 		db.update_progress(anime)
-		return ({'status': 'success'})
+		return jsonify({'status': 'success'})
 	except Exception as e:
-		return ({'error': str(e)})
+		return jsonify({'error': str(e)})
 	
 @app.route('/api/get_progress', methods=['POST'])
-def get_progress():
+async def get_progress():
 	token_valid = check_token_in_request()
 
 	if (token_valid != None):
@@ -305,14 +306,14 @@ def get_progress():
 	try:
 		for key in need_keys:
 			if key not in anime:
-				return ({'error': 'Missing key ' + key})
+				return jsonify({'error': 'Missing key ' + key})
 		progress = db.get_progress(anime)
 		return (progress)
 	except Exception as e:
-		return ({'error': str(e)})
+		return jsonify({'error': str(e)})
 	
 @app.route('/api/get_all_progress', methods=['POST'])
-def get_all_progress():
+async def get_all_progress():
 	token_valid = check_token_in_request()
 
 	if (token_valid != None):
@@ -323,14 +324,14 @@ def get_all_progress():
 	try:
 		for key in need_keys:
 			if key not in anime:
-				return ({'error': 'Missing key ' + key})
+				return jsonify({'error': 'Missing key ' + key})
 		progress = db.get_all_progress(anime['idUser'])
 		return (progress)
 	except Exception as e:
-		return ({'error': str(e)})
+		return jsonify({'error': str(e)})
 	
 @app.route('/api/tmdb', methods=['POST'])
-def tmdb():
+async def tmdb():
 	token_valid = check_token_in_request()
 
 	if (token_valid != None):
@@ -341,7 +342,7 @@ def tmdb():
 	try:
 		for key in need_keys:
 			if key not in data:
-				return ({'error': 'Missing key ' + key})
+				return jsonify({'error': 'Missing key ' + key})
 		if (data['url'].startswith('https://api.themoviedb.org/3/') == False):
 			return {'error': 'Invalid url'}
 		response = requests.get(data['url'].replace('{api_key_tmdb}', 'api_key=' + key_api_tmdb))
@@ -352,10 +353,10 @@ def tmdb():
 			headers={'Access-Control-Allow-Origin': '*'}
 		))
 	except Exception as e:
-		return ({'error': str(e)})
+		return jsonify({'error': str(e)})
 	
 @app.route('/api/get_average_color', methods=['POST'])
-def get_average_color():
+async def get_average_color():
 	token_valid = check_token_in_request()
 
 	if (token_valid != None):
@@ -366,7 +367,7 @@ def get_average_color():
 	try:
 		for key in need_keys:
 			if key not in data:
-				return ({'error': 'Missing key ' + key})
+				return jsonify({'error': 'Missing key ' + key})
 		response = requests.get(data['url'])
 		image = Image.open(BytesIO(response.content))
 		image = image.resize((25, 25))
@@ -380,11 +381,11 @@ def get_average_color():
 			headers={'Access-Control-Allow-Origin': '*'}
 		))
 	except Exception as e:
-		return ({'error': str(e)})
+		return jsonify({'error': str(e)})
 
 
 @app.route('/api/download', methods=['POST'])
-def download_func():
+async def download_func():
 	token_valid = check_token_in_request()
 
 	if (token_valid != None):
@@ -395,14 +396,14 @@ def download_func():
 	try:
 		for key in need_keys:
 			if key not in data:
-				return ({'error': 'Missing key ' + key})
+				return jsonify({'error': 'Missing key ' + key})
 		download.add(data)
-		return ({'status': 'success'})
+		return jsonify({'status': 'success'})
 	except Exception as e:
 		return {'error': str(e)}
 
 @app.route('/api/get_status_download')
-def get_status_download():
+async def get_status_download():
 	token_valid = check_token_in_request()
 
 	if (token_valid != None):
@@ -411,10 +412,10 @@ def get_status_download():
 		status = download.get_status()
 		return (status)
 	except Exception as e:
-		return ({'error': str(e)})
+		return jsonify({'error': str(e)})
 	
 @app.route('/api/del_download', methods=['POST'])
-def delete_download():
+async def delete_download():
 	token_valid = check_token_in_request()
 
 	if (token_valid != None):
@@ -425,14 +426,14 @@ def delete_download():
 	try:
 		for key in need_keys:
 			if key not in data:
-				return ({'error': 'Missing key ' + key})
+				return jsonify({'error': 'Missing key ' + key})
 		download.delete(data['id'])
-		return ({'status': 'success'})
+		return jsonify({'status': 'success'})
 	except Exception as e:
 		return {'error': str(e)}
 	
 @app.route('/api/download/<name>')
-def downloadEp(name):
+async def downloadEp(name):
 	with lock_list_available_ip:
 		if (request.headers['X-Real-IP'] not in list_available_ip):
 			return (Response(
@@ -444,7 +445,7 @@ def downloadEp(name):
 	try:
 		return (download.download(name))
 	except Exception as e:
-		return ({'error': str(e)})
+		return jsonify({'error': str(e)})
 	
 if __name__ == '__main__':
 	app.run(debug=False, port=8000, host='0.0.0.0')
