@@ -105,7 +105,7 @@
 		height: 100%;
 		color: white;
 		padding: 1rem;
-		overflow: scroll;
+		overflow: auto;
 	}
 	.title-div {
 		padding-inline: 1rem;

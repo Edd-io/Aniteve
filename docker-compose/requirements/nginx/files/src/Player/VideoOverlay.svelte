@@ -286,7 +286,7 @@
 		}
 	}}
 >
-	<div style="background-color: #000; overflow: scroll; border-radius: 0.5rem 0.5rem 0 0; position: relative; {fullscreen ? 'height: 100%;' : ''}">
+	<div style="background-color: #000; overflow: hidden; border-radius: 0.5rem 0.5rem 0 0; position: relative; {fullscreen ? 'height: 100%;' : ''}">
 		<div style="{fullscreen ? "width: 100%; heigth: 100%;" : "max-width: 80rem"}; margin: 0 auto;">
 			<div id="player" style="{fullscreen ? 'height: 100vh; padding: 0' : ''}">
 				{#if !hasAlreadyPlayed}

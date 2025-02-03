@@ -116,7 +116,7 @@
 		height: 100%;
 		color: white;
 		padding: 1rem;
-		overflow: scroll;
+		overflow: auto;
 	}
 	.list {
 		display: flex;

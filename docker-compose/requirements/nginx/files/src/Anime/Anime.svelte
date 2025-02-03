@@ -369,7 +369,7 @@
 		align-items: center;
 		color: #fff;
 		padding: 2vw;
-		overflow-y: scroll;
+		overflow-y: auto;
 	}
 	.left::-webkit-scrollbar {
 		width: 0;

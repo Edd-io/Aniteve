@@ -17,7 +17,7 @@ class Downloader:
 	def add(self, data):
 		anime = {
 			'episode': data['episode'],
-			'link': data['src'].replace(data['serverUrl'], 'http://localhost:8080'),
+			'link': data['src'].replace(data['serverUrl'], 'http://localhost:8000'),
 			'name': self.__generate_filename(data['name'], data['episode'], data['season']),
 			'episode': data['episode'],
 			'season': data['season'],
@@ -40,11 +40,12 @@ class Downloader:
 		anime['waiting'] = True
 		self.listAnime.append(anime)
 		if (self.onDownloading == False):
-			asyncio.run(self.download())
+			asyncio.create_task(self.download_list())
 		
-	async def download(self):
+	async def download_list(self):
 		self.onDownloading = True
 		os.system('mkdir -p ./downloaded')
+		print('Start downloading')
 		for i, anime in enumerate(self.listAnime):
 			if (anime['finished'] or anime['failed']):
 				continue

@@ -245,17 +245,19 @@ async def srcFile():
 
 @app.route('/api/video')
 async def video():
-	print("Ici ca passe")
-	with lock_list_available_ip:
-		if (request.headers['X-Real-IP']not in list_available_ip):
-			return (Response(
-				response=json.dumps({'error': 'Access denied'}),
-				status=403,
-				mimetype='application/json',
-				headers={'Access-Control-Allow-Origin': '*'}
-			))
+	try:
+		with lock_list_available_ip:
+			if (request.headers['X-Real-IP']not in list_available_ip):
+				return (Response(
+					response=json.dumps({'error': 'Access denied'}),
+					status=403,
+					mimetype='application/json',
+					headers={'Access-Control-Allow-Origin': '*'}
+				))
+	except Exception as e:
+		pass
+
 	url = 'https://' + request.url.split('?', 1)[1]
-	print("Ici ca passe plus loin ")
 	try:
 		if (url == 'https://'):
 			return (Response(
@@ -269,7 +271,6 @@ async def video():
 		elif (url.find('oneupload') != -1):
 			return (Proxy.oneupload(url))
 		elif (url.find('sendvid') != -1):
-			print('Ouais ouais on est la')
 			return (Proxy.sendvid(url))
 		else:
 			return (Proxy.vidmoly(url))
@@ -434,14 +435,18 @@ async def delete_download():
 	
 @app.route('/api/download/<name>')
 async def downloadEp(name):
-	with lock_list_available_ip:
-		if (request.headers['X-Real-IP'] not in list_available_ip):
-			return (Response(
-				response=json.dumps({'error': 'Access denied'}),
-				status=403,
-				mimetype='application/json',
-				headers={'Access-Control-Allow-Origin': '*'}
-			))
+	try:
+		with lock_list_available_ip:
+			if (request.headers['X-Real-IP'] not in list_available_ip):
+				return (Response(
+					response=json.dumps({'error': 'Access denied'}),
+					status=403,
+					mimetype='application/json',
+					headers={'Access-Control-Allow-Origin': '*'}
+				))
+	except Exception as e:
+		pass
+
 	try:
 		return (download.download(name))
 	except Exception as e:

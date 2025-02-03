@@ -109,7 +109,7 @@
 		outline: none;
 	}
 	.anime-list {
-		overflow-y: scroll;
+		overflow-y: auto;
 		width: 100%;
 		max-height: calc(100% - 3.5rem);
 		margin-block: 0.5rem;

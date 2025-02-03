@@ -177,7 +177,7 @@
 		height: 100%;
 		color: white;
 		padding: 1rem;
-		overflow: scroll;
+		overflow: auto;
 	}
 	.part {
 		display: flex;
@@ -196,7 +196,7 @@
 	}
 	.list-anime-div {
 		display: flex;
-		overflow-x: scroll;
+		overflow-x: auto;
 		flex-direction: row;
 		width: 100%;
 		scroll-behavior: smooth;

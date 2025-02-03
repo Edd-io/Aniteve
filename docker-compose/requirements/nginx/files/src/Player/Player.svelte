@@ -147,7 +147,7 @@
 		width: 70%;
 		height: 100%;
 		margin-right: 1rem;
-		overflow: scroll;
+		overflow: auto;
 		padding: 1rem;
 	}
 	.right-part {
@@ -205,7 +205,7 @@
 		height: calc(100% - 3rem);
 		background-color: #0000003b;
 		border-radius: 0.5rem;
-		overflow: scroll;
+		overflow: auto;
 	}
 	.show-main {
 		animation: fadeIn 0.5s;
