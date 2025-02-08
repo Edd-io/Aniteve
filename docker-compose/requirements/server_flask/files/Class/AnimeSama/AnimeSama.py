@@ -39,6 +39,7 @@ class AnimeSama:
 	thread_new_anime = None
 	disable_get_anime_status = True
 	disable_get_new_animes = True
+	filever_nb = 0
 
 	def __init__(self, db):
 		self.db = db
@@ -84,7 +85,8 @@ class AnimeSama:
 		return (season)
 	
 	def get_anime_episodes(self, anime):
-		response = requests.get(anime['url'] + '/' + anime['season'] + '/episodes.js')
+		response = requests.get(anime['url'] + '/' + anime['season'] + '/episodes.js?filever=' + self.filever_nb)
+		self.filever_nb += 1
 		if (response.status_code != 200):
 			return ({'episodes': {}, 'number': 0})
 		data = response.text
