@@ -37,8 +37,8 @@ class AnimeSama:
 	url = URL_AS + "catalogue/listing_all.php"
 	thread_status_anime = None
 	thread_new_anime = None
-	disable_get_anime_status = True
-	disable_get_new_animes = True
+	disable_get_anime_status = False
+	disable_get_new_animes = False
 	filever_nb = 0
 
 	def __init__(self, db):
@@ -85,7 +85,7 @@ class AnimeSama:
 		return (season)
 	
 	def get_anime_episodes(self, anime):
-		response = requests.get(anime['url'] + '/' + anime['season'] + '/episodes.js?filever=' + self.filever_nb)
+		response = requests.get(anime['url'] + '/' + anime['season'] + '/episodes.js?filever=' + str(self.filever_nb))
 		self.filever_nb += 1
 		if (response.status_code != 200):
 			return ({'episodes': {}, 'number': 0})
