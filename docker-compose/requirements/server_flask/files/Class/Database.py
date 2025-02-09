@@ -242,6 +242,13 @@ class Database:
 		self.conn.commit()
 		cursor.close()
 
+	def delete_progress(self, id_anime, id_user):
+		cursor = self.conn.cursor()
+		data = cursor.execute('''
+			DELETE FROM progress
+			WHERE id_user = ? AND id_anime = ?
+		''', (id_user, id_anime, ))
+
 	def init_download(self):
 		cursor = self.conn.cursor()
 		data = cursor.execute('''

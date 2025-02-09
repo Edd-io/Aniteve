@@ -432,7 +432,7 @@ async def delete_download():
 		return jsonify({'status': 'success'})
 	except Exception as e:
 		return {'error': str(e)}
-	
+
 @app.route('/api/download/<name>')
 async def downloadEp(name):
 	try:
@@ -451,6 +451,25 @@ async def downloadEp(name):
 		return (download.download(name))
 	except Exception as e:
 		return jsonify({'error': str(e)})
-	
+
+@app.route('/api/delete_progress', methods=['POST'])
+async def deleteProgress():
+	token_valid = check_token_in_request()
+
+	if (token_valid != None):
+		return (token_valid)
+	need_keys = ['id', 'idUser']
+	data = request.get_json()
+
+	try:
+		for key in need_keys:
+			if key not in data:
+				return jsonify({'error': 'Missing key ' + key})
+		db.delete_progress(data['id'], data['idUser'])
+		return jsonify({'status': 'success'})
+	except Exception as e:
+		return {'error': str(e)}
+
+
 if __name__ == '__main__':
 	app.run(debug=False, port=8000, host='0.0.0.0')
