@@ -1,21 +1,24 @@
 <script lang='ts'>
 	import { onMount } from 'svelte';
 	import { navigate } from 'svelte-routing';
+    import { on } from 'svelte/events';
 
 	export let menu: any;
 
 	const	serverUrl				= '';
 	let		progressData: any		= [];
 	let		buttonActive			= false;
+	let		listMode				= true;
 
 	onMount(() => {
-		const interval = setInterval(() => {
-			if (menu.user.id !== -1)
-			{
-				getDataProgress();
-				clearInterval(interval);
-			}
-		}, 100);
+		// const interval = setInterval(() => {
+		// 	if (menu.user.id !== -1)
+		// 	{
+		// 		getDataProgress();
+		// 		clearInterval(interval);
+		// 	}
+		// }, 100);
+		getDataProgress();
 	});
 
 	menu.dominantColor = '#c7c7c75c';
@@ -23,23 +26,24 @@
 
 	function getDataProgress()
 	{
-		fetch(serverUrl + '/api/get_all_progress', {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-				'Authorization': localStorage.getItem('token') || '',
-			},
-			body: JSON.stringify({idUser: menu.user.id}),
-		})
-		.then((response) => {
-			return (response.json());
-		})
-		.then((json) => {
-			progressData = json;
-		})
-		.catch((error) => {
-			console.warn(error);
-		});
+		// fetch(serverUrl + '/api/get_all_progress', {
+		// 	method: 'POST',
+		// 	headers: {
+		// 		'Content-Type': 'application/json',
+		// 		'Authorization': localStorage.getItem('token') || '',
+		// 	},
+		// 	body: JSON.stringify({idUser: menu.user.id}),
+		// })
+		// .then((response) => {
+		// 	return (response.json());
+		// })
+		// .then((json) => {
+		// 	progressData = json;
+		// })
+		// .catch((error) => {
+		// 	console.warn(error);
+		// });
+		
 	}
 
 	function hideAll(id: string, data: any)
@@ -86,26 +90,60 @@
 	<div class='title-div'>
 		<h1>Liste de visionnage</h1>
 	</div>
-	<div class='list'>
+	<div class={!listMode ? 'tile-div' : 'line-mode'}>
 		{#each progressData as animeData}
-			<button class='anime-div' id={'anime' + animeData.anime.id} on:click={() => {
-				hideAll('anime' + animeData.anime.id, animeData.anime);
-			}}>
-				<div class='img-container'>
-					<img src={animeData.poster} alt={animeData.title} />
-					<div class='progress-bar' style='width: {animeData.progress}%'></div>
-				</div>
-				<h2>{animeData.anime.title.length > 30 ? animeData.anime.title.substring(0, 30) + '...' : animeData.anime.title}</h2>
-				<div class='status'>
-					{#if animeData.completed === 0 || animeData.completed === 2}
-						<p style="background-color: #fc7b03;">En cours</p>
-					{:else if animeData.completed === 1}
-						<p style="background-color: #0da11e;">À jour</p>
-					{:else if animeData.completed === 3}
-						<p style="background-color: #2e8c8b;">Nouvelle saison</p>
-					{/if}
-				</div>
-			</button>
+				{#if !listMode}
+					<button class='anime-div' id={'anime' + animeData.anime.id} on:click={() => {
+						hideAll('anime' + animeData.anime.id, animeData.anime);
+					}}>
+							<div class='img-container'>
+								<img src={animeData.poster} alt={animeData.title} />
+								<div class='progress-bar' style='width: {animeData.progress}%'></div>
+							</div>
+							<h2>{animeData.anime.title.length > 30 ? animeData.anime.title.substring(0, 30) + '...' : animeData.anime.title}</h2>
+							<div class='status'>
+								{#if animeData.completed === 0 || animeData.completed === 2}
+									<p style="background-color: #fc7b03;">En cours</p>
+								{:else if animeData.completed === 1}
+									<p style="background-color: #0da11e;">À jour</p>
+								{:else if animeData.completed === 3}
+									<p style="background-color: #2e8c8b;">Nouvelle saison</p>
+								{/if}
+							</div>
+					</button>
+				{:else}
+					<button class='anime-div-line' id={'anime' + animeData.anime.id} on:click={() => {
+						hideAll('anime' + animeData.anime.id, animeData.anime);
+					}}>
+						<img src={animeData.poster} alt={animeData.title} />
+						<div>
+							<p>{animeData.anime.title}</p>
+							<p style='font-size: 0.8rem; color: #c7c7c7;'>
+								{#if animeData.completed === 0 || animeData.completed === 2}
+									En cours
+								{:else if animeData.completed === 1}
+									À jour
+								{:else if animeData.completed === 3}
+									Nouvelle saison
+								{/if}
+							</p>
+						</div>
+						<div class='btns'>
+							<!-- svelte-ignore a11y_click_events_have_key_events -->
+							<div on:click={() => console.log('En cours')} role="button" tabindex="0">
+								<p>Modifier</p>
+							</div>
+							<!-- svelte-ignore a11y_click_events_have_key_events -->
+							<div on:click={() => console.log('En cours')} role="button" tabindex="0">
+								<p>Supprimer</p>
+							</div>
+							<!-- <button>
+								<p>Supprimer</p>
+							</button> -->
+
+						</div>
+					</button>
+				{/if}
 		{/each}
 	</div>
 </main>
@@ -116,12 +154,18 @@
 		height: 100%;
 		color: white;
 		padding: 1rem;
-		overflow: auto;
 	}
-	.list {
+	.tile-div {
 		display: flex;
 		flex-wrap: wrap;
 		justify-content: center;
+	}
+	.line-mode {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		overflow: auto;
+		height: calc(100% - 3.5rem);
 	}
 	.title-div {
 		padding-inline: 1rem;
@@ -178,6 +222,53 @@
 		text-align: center;
 		width: 100%;
 		height: 2rem;
+	}
+	.anime-div-line {
+		width: 95%;
+		height: 5rem;
+		background-color: #c7c7c75c;
+		border-radius: 0.5rem;
+		padding: 0.5rem;
+		margin-block: 0.5rem;
+		text-align: left;
+		transition: background-color 0.5s, transform 0.5s;
+		cursor: pointer;
+		color: white;
+		border: none;
+		display: flex;
+		align-items: center;
+	}
+	.anime-div-line:hover {
+		background-color: #c7c7c7af;
+		transform: scale(1.02);
+	}
+	.anime-div-line img {
+		width: 4.5rem;
+		height: 4.5rem;
+		min-width: 4.5rem;
+		object-fit: cover;
+		border-radius: 0.5rem;
+		margin-right: 0.5rem;
+	}
+	.anime-div-line p {
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	.anime-div-line .btns {
+		display: flex;
+		flex-direction: column;
+		align-items: end;
+		margin-left: auto;
+	}
+	.anime-div-line .btns div {
+		padding: 0.2rem 0.5rem;
+		margin-block: 0.2rem;
+		cursor: pointer;
+		border-radius: 0.5rem;
+	}
+	.anime-div-line .btns div:hover {
+		background-color: #c7c7c7af;
 	}
 	.status {
 		position: absolute;
