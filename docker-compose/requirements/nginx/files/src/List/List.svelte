@@ -11,14 +11,13 @@
 	let		listMode				= true;
 
 	onMount(() => {
-		// const interval = setInterval(() => {
-		// 	if (menu.user.id !== -1)
-		// 	{
-		// 		getDataProgress();
-		// 		clearInterval(interval);
-		// 	}
-		// }, 100);
-		getDataProgress();
+		const interval = setInterval(() => {
+			if (menu.user.id !== -1)
+			{
+				getDataProgress();
+				clearInterval(interval);
+			}
+		}, 100);
 	});
 
 	menu.dominantColor = '#c7c7c75c';
@@ -26,29 +25,30 @@
 
 	function getDataProgress()
 	{
-		// fetch(serverUrl + '/api/get_all_progress', {
-		// 	method: 'POST',
-		// 	headers: {
-		// 		'Content-Type': 'application/json',
-		// 		'Authorization': localStorage.getItem('token') || '',
-		// 	},
-		// 	body: JSON.stringify({idUser: menu.user.id}),
-		// })
-		// .then((response) => {
-		// 	return (response.json());
-		// })
-		// .then((json) => {
-		// 	progressData = json;
-		// })
-		// .catch((error) => {
-		// 	console.warn(error);
-		// });
-		
+		fetch(serverUrl + '/api/get_all_progress', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': localStorage.getItem('token') || '',
+			},
+			body: JSON.stringify({idUser: menu.user.id}),
+		})
+		.then((response) => {
+			return (response.json());
+		})
+		.then((json) => {
+			progressData = json;
+		})
+		.catch((error) => {
+			console.warn(error);
+		});
 	}
 
-	function hideAll(id: string, data: any)
+	function hideAll(id: string, data: any, event: any)
 	{
 		if (buttonActive)
+			return;
+		if (event.target.id === 'deleteBtn')
 			return;
 		buttonActive = true;
 		const animeResumed = document.querySelector('#' + id) as HTMLElement;
@@ -84,6 +84,30 @@
 		}, 500);
 	}
 
+	function confirmDelete(animeId: string, id: number)
+	{
+		const	animeResumed = document.querySelector('#' + animeId) as HTMLElement;
+		const	btnDelete = animeResumed.querySelector('#deleteBtn') as HTMLElement;
+
+		if (btnDelete.innerText == 'Supprimer')
+			btnDelete.innerText = 'Confirmer';
+		else
+		{
+			fetch(serverUrl + '/api/delete_progress', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': localStorage.getItem('token') || '',
+				},
+				body: JSON.stringify({idUser: menu.user.id, idAnime: id}),
+			})
+			.catch((error) => {
+				console.warn(error);
+			});
+			animeResumed.remove();
+		}
+	}
+
 </script>
 
 <main class='main'>
@@ -91,10 +115,21 @@
 		<h1>Liste de visionnage</h1>
 	</div>
 	<div class={!listMode ? 'tile-div' : 'line-mode'}>
+		<div class='filter-bar'>
+			<button on:click={() => listMode = !listMode}>
+				<p style="font-size: 0.8rem; color: white;">
+					{#if listMode}
+						Mode liste
+					{:else}
+						Mode tuile
+					{/if}
+				</p>
+			</button>
+		</div>
 		{#each progressData as animeData}
 				{#if !listMode}
-					<button class='anime-div' id={'anime' + animeData.anime.id} on:click={() => {
-						hideAll('anime' + animeData.anime.id, animeData.anime);
+					<button class='anime-div' id={'anime' + animeData.anime.id} on:click={(event) => {
+						hideAll('anime' + animeData.anime.id, animeData.anime, event);
 					}}>
 							<div class='img-container'>
 								<img src={animeData.poster} alt={animeData.title} />
@@ -112,8 +147,8 @@
 							</div>
 					</button>
 				{:else}
-					<button class='anime-div-line' id={'anime' + animeData.anime.id} on:click={() => {
-						hideAll('anime' + animeData.anime.id, animeData.anime);
+					<button class='anime-div-line' id={'anime' + animeData.anime.id} on:click={(event) => {
+						hideAll('anime' + animeData.anime.id, animeData.anime, event);
 					}}>
 						<img src={animeData.poster} alt={animeData.title} />
 						<div>
@@ -130,16 +165,9 @@
 						</div>
 						<div class='btns'>
 							<!-- svelte-ignore a11y_click_events_have_key_events -->
-							<div on:click={() => console.log('En cours')} role="button" tabindex="0">
-								<p>Modifier</p>
+							<div on:click={() => {confirmDelete('anime' + animeData.anime.id, animeData.anime.id)}} role="button" tabindex="0" id='deleteBtn'>
+								Supprimer
 							</div>
-							<!-- svelte-ignore a11y_click_events_have_key_events -->
-							<div on:click={() => console.log('En cours')} role="button" tabindex="0">
-								<p>Supprimer</p>
-							</div>
-							<!-- <button>
-								<p>Supprimer</p>
-							</button> -->
 
 						</div>
 					</button>
@@ -254,6 +282,7 @@
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
+		font-size: 0.8rem;
 	}
 	.anime-div-line .btns {
 		display: flex;
@@ -266,9 +295,10 @@
 		margin-block: 0.2rem;
 		cursor: pointer;
 		border-radius: 0.5rem;
+		font-size: 0.8rem;
 	}
 	.anime-div-line .btns div:hover {
-		background-color: #c7c7c7af;
+		background-color: #e94444af;
 	}
 	.status {
 		position: absolute;
@@ -287,5 +317,26 @@
 		justify-content: center;
 		align-items: center;
 		border-radius: 0 0 0.5rem 0.5rem;
+	}
+	.filter-bar {
+		width: 95%;
+		display: flex;
+		justify-content: flex-end;
+		background-color: #c7c7c75c;
+		border-radius: 0.5rem;
+		margin-block: 0.5rem;
+	}
+	.filter-bar button {
+		background: none;
+		border: none;
+		border-radius: 0.5rem;
+		padding: 0.2rem;
+		padding-inline: 0.5rem;
+		cursor: pointer;
+		margin: 0.2rem;
+		transition: background-color 0.2s;
+	}
+	.filter-bar button:hover {
+		background-color: #c7c7c7af;
 	}
 </style>

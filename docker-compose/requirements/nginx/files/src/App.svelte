@@ -138,8 +138,6 @@
 			<LeftBar bind:menu={menu} />
 		{/if}
 		<div id="content">
-			<List bind:menu={menu} />
-			<!-- 
 			{#if menu.selected == 7}
 				<Route path="/" let:location>
 					<Login bind:menu={menu} />
@@ -165,7 +163,7 @@
 			</Route>
 			<Route path="/choose_user" let:location>
 				<ChooseUser bind:menu={menu} />
-			</Route> -->
+			</Route>
 		</div>
 	</Router>
 </main>
