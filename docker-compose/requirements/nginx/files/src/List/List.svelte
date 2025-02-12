@@ -99,7 +99,7 @@
 					'Content-Type': 'application/json',
 					'Authorization': localStorage.getItem('token') || '',
 				},
-				body: JSON.stringify({idUser: menu.user.id, idAnime: id}),
+				body: JSON.stringify({idUser: menu.user.id, id: id}),
 			})
 			.catch((error) => {
 				console.warn(error);
