@@ -1,11 +1,11 @@
 # Aniteve
-Un site et une application TV pour regarder vos animés préférés sans pub en français.
+Un site pour regarder vos animés préférés sans pub en français.
 
 <div align="center">
   <img style="height: 200px; width: 200px; margin-bottom: 50px" src="https://github.com/user-attachments/assets/e2659831-2278-466c-8429-bfa939df0032"/>
 </div>
 
-Aniteve est une plateforme complète qui vous permet de regarder et télécharger vos animes préférés sans aucune publicité. L'application TV et le site web sont parfaitement synchronisés, vous offrant une expérience fluide et agréable.
+Aniteve est une plateforme complète qui vous permet de regarder et télécharger vos animes préférés sans aucune publicité. L'application TV, le site web (et prochainement l'application mobile) sont parfaitement synchronisés, vous offrant une expérience fluide et agréable.
 
 ## Fonctionnalités principales
 
@@ -19,7 +19,7 @@ Aniteve est une plateforme complète qui vous permet de regarder et télécharge
 
 ### Gestion de l'avancement
 
-  - Reprenez un épisode là où vous l'avez laissé, que ce soit sur le site ou l'application TV.
+  - Reprenez un épisode là où vous l'avez laissé, que ce soit sur le site ou les applications.
 
   - Synchronisation en temps réel entre vos appareils.
 
@@ -89,11 +89,7 @@ Pour toute sorti en dehors de votre réseau local, je vous conseille fortement d
 |------------------------------------------------|------------------------------------------------|
 | ![Image 3](https://github.com/user-attachments/assets/fa62721c-001b-4449-ad9c-cfb8450c816d) | ![Image 4](https://github.com/user-attachments/assets/abe26311-626d-42bd-901f-c29d7e0c73b1) |
 | ![Image 5](https://github.com/user-attachments/assets/7a43601e-e031-4cf4-9e94-422379fb005c) | ![Image 6](https://github.com/user-attachments/assets/058d657f-dc31-431c-9f7c-261d66cdf9c9) |                                                |
-
-### Screenshots (App TV)
-
-
-
-
-
   
+### Avertissement
+
+Je tiens à rappeler que regarder des animes sans passer par des plateformes légales peut être contraire aux droits d'auteur. Accéder ou télécharger des contenus protégés sans l'accord des ayants droit est illégal dans de nombreux pays et peut entraîner des sanctions. Aniteve est un projet personnel à but éducatif et ne promeut pas le piratage. Nous vous encourageons vivement à soutenir l'industrie de l'anime en utilisant des moyens légaux pour profiter de ces œuvres.
