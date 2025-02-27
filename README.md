@@ -89,7 +89,13 @@ Pour toute sorti en dehors de votre réseau local, je vous conseille fortement d
 |------------------------------------------------|------------------------------------------------|
 | ![Image 3](https://github.com/user-attachments/assets/fa62721c-001b-4449-ad9c-cfb8450c816d) | ![Image 4](https://github.com/user-attachments/assets/abe26311-626d-42bd-901f-c29d7e0c73b1) |
 | ![Image 5](https://github.com/user-attachments/assets/7a43601e-e031-4cf4-9e94-422379fb005c) | ![Image 6](https://github.com/user-attachments/assets/058d657f-dc31-431c-9f7c-261d66cdf9c9) |                                                |
-  
-### Avertissement
+
+## License
+
+Ce programme est distribué sous la licence MIT. Cela signifie que vous êtes libre d'utiliser, modifier et redistribuer le code, tant que vous incluez une copie de la licence originale.
+
+Pour plus de détails, consultez le fichier LICENSE inclus avec le projet.
+
+## Avertissement
 
 Je tiens à rappeler que regarder des animes sans passer par des plateformes légales peut être contraire aux droits d'auteur. Accéder ou télécharger des contenus protégés sans l'accord des ayants droit est illégal dans de nombreux pays et peut entraîner des sanctions. Aniteve est un projet personnel à but éducatif et ne promeut pas le piratage. Nous vous encourageons vivement à soutenir l'industrie de l'anime en utilisant des moyens légaux pour profiter de ces œuvres.
