@@ -83,7 +83,7 @@ WEBHOOK_URL="[Webhook discord (optionnel)]"
 Accessible sur l'adresse [http://localhost:8555](http://localhost:8555)
 Pour toute sorti en dehors de votre réseau local, je vous conseille fortement de passer en https pour plus de sécurité
 
-### Screenshots (Website)
+### Screenshots
 
 | ![Image 1](https://github.com/user-attachments/assets/5353a0ab-ce00-421e-b7e2-a71c1fe52037) | ![Image 2](https://github.com/user-attachments/assets/cb23509d-827d-4477-bc0d-70d7898bb61e) |
 |------------------------------------------------|------------------------------------------------|
