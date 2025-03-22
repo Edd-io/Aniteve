@@ -233,6 +233,8 @@ class AnimeSama:
 				for i, episode in enumerate(list_episode):
 					try:
 						ep = episode.text.lower().split('episode ')[1]
+						ep = ep.split(' ')[0]
+						ep = int(ep)
 					except:
 						ep = -1
 					list_number_episode.append(ep)
@@ -252,10 +254,10 @@ class AnimeSama:
 	def get_new_animes(self):
 		while (1):
 			try:
-				sleep(86400)
+				sleep(259200)
 				self.get_anime_list()
 			except Exception as e:
-				sleep(86400)
+				sleep(259200)
 				pass
 		self.thread_new_anime = None
 		return

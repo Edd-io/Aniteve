@@ -7,7 +7,6 @@ from credientials import *
 import time
 
 class Database:
-	_instance = None
 	thread_backup = None
 	threads_started = False
 
