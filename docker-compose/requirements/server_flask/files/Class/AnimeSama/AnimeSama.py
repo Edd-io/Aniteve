@@ -161,7 +161,9 @@ class AnimeSama:
 			endPos = line.find('.m3u8')
 			if (pos == -1 or line.find('file:') == -1 or endPos == -1):
 				continue
-			url = serverUrl + SERV_URL_VIDEO + line[pos + 8:endPos + 5]
+			while (line[endPos] != '"' and line[endPos] != "'"):
+				endPos += 1
+			url = serverUrl + SERV_URL_VIDEO + line[pos + 8:endPos]
 		return (url)
 	
 	def __get_source_file_from_oneupload(self, episode, serverUrl):
