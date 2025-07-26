@@ -333,4 +333,4 @@ class Database:
 				message = f"Erreur lors de l'envoi : {e}"
 				response = requests.post(webhook_url, data={'content': message})
 				print(message)
-			time.sleep(86400)
+			time.sleep(604800)

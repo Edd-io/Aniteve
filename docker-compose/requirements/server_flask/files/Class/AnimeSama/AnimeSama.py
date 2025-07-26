@@ -130,7 +130,7 @@ class AnimeSama:
 	
 	def __get_source_file_from_sibnet(self, episode, serverUrl):
 		headers = {
-			'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+			'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
 		}
 		response	= requests.get(episode, headers=headers)
 		response	= response.text.split('\n')
@@ -150,7 +150,7 @@ class AnimeSama:
 	
 	def __get_source_file_from_vidmoly(self, episode, serverUrl):
 		headers = {
-			'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+			'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
 		}
 		response	= requests.get(episode, headers=headers)
 		response	= response.text.split('\n')
@@ -185,7 +185,7 @@ class AnimeSama:
 
 	def __get_source_file_from_sendvid(self, episode, serverUrl):
 		headers = {
-			'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+			'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
 		}
 		response	= requests.get(episode, headers=headers)
 		response	= response.text.split('\n')
