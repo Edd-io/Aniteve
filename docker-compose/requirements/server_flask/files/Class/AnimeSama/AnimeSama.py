@@ -130,7 +130,7 @@ class AnimeSama:
 	
 	def __get_source_file_from_sibnet(self, episode, serverUrl):
 		headers = {
-			'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
+			'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
 		}
 		response	= requests.get(episode, headers=headers)
 		response	= response.text.split('\n')
@@ -149,10 +149,61 @@ class AnimeSama:
 		return (url)
 	
 	def __get_source_file_from_vidmoly(self, episode, serverUrl):
+		if 'vidmoly.to' in episode:
+			domain = 'vidmoly.to'
+		else:
+			domain = 'vidmoly.net'
+			
 		headers = {
-			'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
+			'Host': domain,
+			'Referer': f'https://{domain}',
+			'sec-fetch-dest': 'video',
+			'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
 		}
-		response	= requests.get(episode, headers=headers)
+		print("Fetching video from Vidmoly...")
+		print(f"Episode URL: {episode}")
+		
+		original_episode = episode
+		if 'vidmoly.to' in episode:
+			episode_net = episode.replace('vidmoly.to', 'vidmoly.net')
+			print(f"Also trying with .net domain: {episode_net}")
+		else:
+			episode_net = None
+			
+		timeout_duration = 3 if 'vidmoly.to' in episode else 30
+		
+		try:
+			response = requests.get(episode, headers=headers, timeout=timeout_duration)
+			print(f"Response status: {response.status_code}")
+			print(f"Response length: {len(response.text)}")
+		except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
+			print(f"Request to {episode} failed after {timeout_duration}s: {e}")
+			if episode_net:
+				print(f"Trying alternative domain: {episode_net}")
+				try:
+					headers['Host'] = 'vidmoly.net'
+					headers['Referer'] = 'https://vidmoly.net'
+					response = requests.get(episode_net, headers=headers, timeout=30)
+					episode = episode_net
+				except Exception as e2:
+					print(f"Alternative request also failed: {e2}")
+					return None
+			else:
+				return None
+		except Exception as e:
+			print(f"Request failed: {e}")
+			if episode_net:
+				print(f"Trying alternative domain: {episode_net}")
+				try:
+					headers['Host'] = 'vidmoly.net'
+					headers['Referer'] = 'https://vidmoly.net'
+					response = requests.get(episode_net, headers=headers, timeout=30)
+					episode = episode_net
+				except Exception as e2:
+					print(f"Alternative request also failed: {e2}")
+					return None
+			else:
+				return None
 		response	= response.text.split('\n')
 		url			= None
 
@@ -163,7 +214,11 @@ class AnimeSama:
 				continue
 			while (line[endPos] != '"' and line[endPos] != "'"):
 				endPos += 1
-			url = serverUrl + SERV_URL_VIDEO + line[pos + 8:endPos]
+			original_url = line[pos + 8:endPos]
+			if episode_net and episode == episode_net and 'vidmoly.to' in original_url:
+				original_url = original_url.replace('vidmoly.to', 'vidmoly.net')
+			url = serverUrl + SERV_URL_VIDEO + original_url
+			break
 		return (url)
 	
 	def __get_source_file_from_oneupload(self, episode, serverUrl):
@@ -185,7 +240,7 @@ class AnimeSama:
 
 	def __get_source_file_from_sendvid(self, episode, serverUrl):
 		headers = {
-			'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
+			'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
 		}
 		response	= requests.get(episode, headers=headers)
 		response	= response.text.split('\n')
