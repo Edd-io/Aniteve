@@ -135,8 +135,8 @@ class Database:
 				anime['episode'] += 1
 				anime['progress'] = 0
 			else:
-				isInVostfr = anime['allSeasons'][anime['seasonId']].find('vostfr') != -1
-				if (anime['seasonId'] + 1 < len(anime['allSeasons']) and (anime['allSeasons'][anime['seasonId'] + 1].find('vostfr') != -1) == isInVostfr and anime['allSeasons'][anime['seasonId'] + 1].find('saison') != -1):
+				isInVostfr = anime['allSeasons'][anime['seasonId']]['lang'].find('vostfr') != -1
+				if (anime['seasonId'] + 1 < len(anime['allSeasons']) and (anime['allSeasons'][anime['seasonId'] + 1]['lang'].find('vostfr') != -1) == isInVostfr and anime['allSeasons'][anime['seasonId'] + 1]['lang'].find('saison') != -1):
 					anime['seasonId'] += 1
 					anime['episode'] = 1
 					anime['progress'] = 0
@@ -152,11 +152,11 @@ class Database:
 					status = ?,
 					see_date = CURRENT_TIMESTAMP
 				WHERE id_anime = ? AND id_user = ?
-			''', (anime['episode'], anime['allSeasons'][anime['seasonId']], anime['progress'], status, anime['id'], anime['idUser']))
+			''', (anime['episode'], anime['allSeasons'][anime['seasonId']]['url'], anime['progress'], status, anime['id'], anime['idUser']))
 		else:
 			cursor.execute('''
 				INSERT INTO progress (id_anime, episode, season, progress, status, poster, id_user)
-				VALUES (?, ?, ?, ?, ?, ?, ?)''', (anime['id'], anime['episode'], anime['allSeasons'][anime['seasonId']], anime['progress'], status, anime['poster'], anime['idUser']))
+				VALUES (?, ?, ?, ?, ?, ?, ?)''', (anime['id'], anime['episode'], anime['allSeasons'][anime['seasonId']]['url'], anime['progress'], status, anime['poster'], anime['idUser']))
 		self.conn.commit()
 		cursor.close()
 

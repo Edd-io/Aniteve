@@ -12,6 +12,12 @@
 	let		selectedEpisode			= 0;
 	const	listSource: any			= writable([]);
 
+	interface Season {
+		name: string;
+		url: string;
+		lang: string;
+	}
+
 	const	banGenre = ['vostfr', 'vf', 'cardlistanime', 'anime', '-', 'scans', 'film'];
 	data.anime?.genre?.map((genre: string) => {
 		if (!banGenre.includes(genre.toLowerCase()))
@@ -26,7 +32,7 @@
 				'Content-Type': 'application/json',
 				'Authorization': localStorage.getItem('token') || '',
 			}, 
-			body: JSON.stringify({url: data.anime.url, season: data.anime.season[idSelectedSeason], serverUrl: window.location.origin}),
+			body: JSON.stringify({url: data.anime.url, season: data.anime.season[idSelectedSeason].url, serverUrl: window.location.origin}),
 		}).then((response) => {
 			return response.json();
 		}).then((data) => {
@@ -44,7 +50,11 @@
 	if (data.anime.progress.find)
 	{
 		selectedEpisode = data.anime.progress.episode - 1;
-		idSelectedSeason = data.anime.season.findIndex((season: string) => season == data.anime.progress.season);
+		console.log('aaaaaa ', data.anime.progress.season);
+		idSelectedSeason = data.anime.season.findIndex((season: Season) => season.url == data.anime.progress.season);
+		console.log('idSelectedSeason', idSelectedSeason);
+		if (idSelectedSeason == -1)
+			idSelectedSeason = 0;
 		changeSeason(true);
 	}
 	else
@@ -92,7 +102,7 @@
 		}}>
 			{#if data.anime.season}
 				{#each data.anime.season as season, index}
-					<option value={index}>{season}</option>
+					<option value={index}>{season.name} - {season.lang.toUpperCase()}</option>
 				{/each}
 			{/if}
 		</select>

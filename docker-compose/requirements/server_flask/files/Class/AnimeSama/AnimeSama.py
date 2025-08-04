@@ -5,6 +5,7 @@ import subprocess
 import threading
 import requests
 import json
+import re
 
 URL_AS				= 'https://anime-sama.fr/'
 SERV_URL_SRCFILE	= '/api/srcFile?'
@@ -81,7 +82,15 @@ class AnimeSama:
 			elif (isInComment == True):
 				continue
 			elif (line.find('panneauAnime("') != -1):
-				season.append(line.strip().split('"')[-2])
+				match = re.search(r'panneauAnime\("([^"]+)",\s*"([^"]+)"\)', line)
+				if match:
+					season_name = match.group(1)
+					season_url = match.group(2)
+					lang = season_url.split('/')[-1]
+					season.append({'name': season_name, 'url': season_url, 'lang': lang})
+					print(f"Found season: {season_name} with URL: {season_url} and Language: {lang}")
+				else:
+					print(f"Could not parse season line: {line}")
 		return (season)
 	
 	def get_anime_episodes(self, anime):

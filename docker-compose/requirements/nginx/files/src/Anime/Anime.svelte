@@ -13,7 +13,7 @@
 	let		backgroundImg			= '';
 	let		logoImg					= '';
 	let		genreString: string[]	= [];
-	let		allSeasons: any			= [];
+	let		allSeasons: Season[]	= [];
 	let		dominantColor			= '';
 	let		dataFromTmdb			= {
 										title: '',
@@ -29,6 +29,12 @@
 										fetch: false
 									};
 	let		animation				= true;
+
+	interface Season {
+		name: string;
+		url: string;
+		lang: string;
+	}
 
 	console.log(anime);
 	anime?.genre?.map((genre: string) => {
@@ -171,13 +177,16 @@
 
 		if (anime?.genre.includes('Vf'))
 		{
-			data.season.forEach((element: string) => {
-				element = element.replace('vostfr', 'vf');
-				season.push(element);
+			data.season.forEach((element: Season) => {
+				season.push({
+					name: element.name,
+					url: element.url,
+					lang: 'vf'
+				});
 			});
 		}
 		allSeasons = season;
-		isMovie = season[0]?.toLowerCase().includes('film');
+		isMovie = season[0]?.name.toLowerCase().includes('film');
 		get_data_from_tmdb(anime.title, isMovie).then((data) => {
 			if (!data)
 			{
