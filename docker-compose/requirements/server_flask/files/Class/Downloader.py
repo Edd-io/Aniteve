@@ -150,16 +150,19 @@ class Downloader:
 		return ({'status': 'success'})
 	
 	def download(self, name):
-		file_path = f'./downloaded/{name}'
-		if (name.find('..') != -1 or name.find('/') != -1 or name.find('\\') != -1):
+		import re
+		if not re.fullmatch(r'[\w\-.() ]+', name):
 			return ({'error': 'Invalid name'})
+		if name.startswith('.') or '/' in name or '\\' in name or '..' in name:
+			return ({'error': 'Invalid name'})
+		file_path = os.path.join('./downloaded', name)
 		if os.path.exists(file_path):
 			return (Response(
 				open(file_path, 'rb'),
 				mimetype='application/octet-stream',
 				headers={
 					"Content-Disposition": f"attachment;filename={name}",
-					"Content-Length": os.path.getsize(file_path)
+					"Content-Length": str(os.path.getsize(file_path))
 				}
 			))
 		else:

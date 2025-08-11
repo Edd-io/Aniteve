@@ -5,6 +5,7 @@ import os
 import requests
 from credientials import *
 import time
+import shutil
 
 class Database:
 	thread_backup = None
@@ -302,7 +303,17 @@ class Database:
 		download = cursor.execute('''
 			SELECT * FROM download
 			WHERE id = ?''', (id,)).fetchone()
-		os.system(f'rm -rf ./downloaded/{download[1]}')
+		if download:
+			name = download[1]
+			# Validate name: no path traversal or slashes
+			if any(x in name for x in ('..', '/', '\\')):
+				cursor.close()
+				raise ValueError('Invalid filename')
+			file_path = os.path.join('./downloaded', name)
+			if os.path.isdir(file_path):
+				shutil.rmtree(file_path)
+			elif os.path.isfile(file_path):
+				os.remove(file_path)
 		cursor.execute('''
 			DELETE FROM download
 			WHERE id = ?''', (id,))
