@@ -453,21 +453,38 @@
 				if (!data) {
 					imageLoaded = true;
 					dataFromTmdb.fetch = true;
-				}
-				const logoData = (data?.logos ?? [])[0];
-				const backdropData = (data?.backdrops ?? [])[0];
+				} else {
+					const logoData = (data?.logos ?? [])[0];
+					const backdropData = (data?.backdrops ?? [])[0];
 
-				if (logoData) logoImg = base_url_tmdb + logoData.file_path;
-				if (backdropData)
-					backgroundImg = base_url_tmdb + backdropData.file_path;
-				getAverageColor(
-					backgroundImg ? backgroundImg : anime.img,
-					(color: any) => {
-						if (menu.selected !== 3) return;
-						dominantColor = `rgb(${Math.abs(color[0] - 40)}, ${Math.abs(color[1] - 40)}, ${Math.abs(color[2] - 40)})`;
-						menu.dominantColor = dominantColor;
-					},
-				);
+					if (logoData) logoImg = base_url_tmdb + logoData.file_path;
+					if (backdropData)
+						backgroundImg = base_url_tmdb + backdropData.file_path;
+					
+					dataFromTmdb = {
+						...dataFromTmdb,
+						title: data.title || anime.title,
+						firstAirDate: data.first_air_date || "",
+						overview: data.overview || "Aucune description disponible",
+						popularity: data.popularity || 0,
+						note: data.vote_average || 0,
+						nbVotes: data.vote_count || 0,
+						fetch: true
+					};
+					
+					getAverageColor(
+						backgroundImg ? backgroundImg : anime.img,
+						(color: any) => {
+							if (menu.selected !== 3) return;
+							dominantColor = `rgb(${Math.abs(color[0] - 40)}, ${Math.abs(color[1] - 40)}, ${Math.abs(color[2] - 40)})`;
+							menu.dominantColor = dominantColor;
+						},
+					);
+				}
+			}).catch((error) => {
+				imageLoaded = true;
+				dataFromTmdb.fetch = true;
+				console.warn("TMDB error:", error);
 			});
 		})
 		.catch((error) => {
