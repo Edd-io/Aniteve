@@ -95,7 +95,7 @@
 
 	const get_data_from_tmdb = async (id: string, isMovie: boolean) => {
 		async function callTMDBProxy(url: string): Promise<any> {
-			const response = await fetch(`${serverUrl}/api/tmdb_proxy`, {
+			const response = await fetch(`${serverUrl}/api/tmdb`, {
 				method: "POST",
 				headers: createHeaders(localStorage.getItem("token")),
 				body: JSON.stringify({ url }),
