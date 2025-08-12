@@ -100,6 +100,8 @@ class Database:
 		return (data)
 
 	def insert_anime(self, anime):
+		if anime['url'] and anime['url'][-1] == '/':
+			anime['url'] = anime['url'][:-1]
 		cursor = self.conn.cursor()
 		isPresent = cursor.execute('''
 			SELECT * FROM anime_list
@@ -305,7 +307,6 @@ class Database:
 			WHERE id = ?''', (id,)).fetchone()
 		if download:
 			name = download[1]
-			# Validate name: no path traversal or slashes
 			if any(x in name for x in ('..', '/', '\\')):
 				cursor.close()
 				raise ValueError('Invalid filename')
