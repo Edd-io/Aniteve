@@ -7,4 +7,3 @@ gevent
 flask_cors
 pillow
 hypercorn
-shutil
