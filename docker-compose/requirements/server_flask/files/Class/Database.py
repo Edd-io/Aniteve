@@ -61,9 +61,24 @@ class Database:
 				poster TEXT
 			)''')
 		self.conn.commit()
+		self.update(cursor)
 		cursor.close()
 		self.init_download()
 		print('Table created')
+
+	def update(self, cursor):
+		cursor.execute("PRAGMA table_info(progress)")
+		columns = [col[1] for col in cursor.fetchall()]
+		if "season_name" not in columns:
+			cursor.execute('''
+				ALTER TABLE progress ADD COLUMN season_name TEXT
+			''')
+			self.conn.commit()
+		if "language" not in columns:
+			cursor.execute('''
+				ALTER TABLE progress ADD COLUMN language TEXT
+			''')
+			self.conn.commit()
 
 	def insert_user(self, username):
 		cursor = self.conn.cursor()
@@ -153,13 +168,15 @@ class Database:
 					season = ?,
 					progress = ?,
 					status = ?,
-					see_date = CURRENT_TIMESTAMP
+					see_date = CURRENT_TIMESTAMP,
+					season_name = ?,
+					language = ?
 				WHERE id_anime = ? AND id_user = ?
-			''', (anime['episode'], anime['allSeasons'][anime['seasonId']]['url'], anime['progress'], status, anime['id'], anime['idUser']))
+			''', (anime['episode'], anime['allSeasons'][anime['seasonId']]['url'], anime['progress'], status, anime['allSeasons'][anime['seasonId']]['name'], anime['allSeasons'][anime['seasonId']]['lang'], anime['id'], anime['idUser']))
 		else:
 			cursor.execute('''
-				INSERT INTO progress (id_anime, episode, season, progress, status, poster, id_user)
-				VALUES (?, ?, ?, ?, ?, ?, ?)''', (anime['id'], anime['episode'], anime['allSeasons'][anime['seasonId']]['url'], anime['progress'], status, anime['poster'], anime['idUser']))
+				INSERT INTO progress (id_anime, episode, season, progress, status, poster, id_user, season_name, language)
+				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''', (anime['id'], anime['episode'], anime['allSeasons'][anime['seasonId']]['url'], anime['progress'], status, anime['poster'], anime['idUser'], anime['allSeasons'][anime['seasonId']]['name'], anime['allSeasons'][anime['seasonId']]['lang']))
 		self.conn.commit()
 		cursor.close()
 
@@ -177,7 +194,9 @@ class Database:
 			'episode': progress[3],
 			'season': progress[4],
 			'progress': progress[5],
-			'status': progress[6],		
+			'status': progress[6],
+			'season_name': progress[7],
+			'lang': progress[8],
 		}
 		return (dataProgress)
 	
@@ -206,6 +225,8 @@ class Database:
 				"progress": progress[i][5],
 				"completed": progress[i][6],
 				"poster": progress[i][8],
+				"season_name": progress[i][7],
+				"lang": progress[i][9],
 			}
 		return (progress)
 
