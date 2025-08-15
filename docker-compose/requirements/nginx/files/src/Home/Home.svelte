@@ -124,7 +124,7 @@
 									{/if}
 								</div>
 								<h2>{animeData.anime.title.length > 30 ? animeData.anime.title.substring(0, 30) + '...' : animeData.anime.title}</h2>
-								<p>Episode {animeData.episode} {animeData.season.split('/')[0]}</p>
+								<p>Episode {animeData.episode} {animeData.season_name ? animeData.season_name : animeData.season.split('/')[0]}</p>
 							</button>
 						{/if}
 					{/each}
@@ -161,7 +161,7 @@
 										<div class='progress-bar' style='width: {animeData.progress}%'></div>
 									</div>
 									<h2>{animeData.anime.title.length > 30 ? animeData.anime.title.substring(0, 30) + '...' : animeData.anime.title}</h2>
-									<p>Episode {animeData.episode} {animeData.season.split('/')[0]}</p>
+									<p>Episode {animeData.episode} {animeData.season_name ? animeData.season_name : animeData.season.split('/')[0]}</p>
 								</button>
 							{/if}
 						{/each}
