@@ -195,8 +195,8 @@ class Database:
 			'season': progress[4],
 			'progress': progress[5],
 			'status': progress[6],
-			'season_name': progress[7],
-			'lang': progress[8],
+			'season_name': progress[9] if len(progress) > 9 else None,
+			'lang': progress[10] if len(progress) > 10 else None,
 		}
 		return (dataProgress)
 	
@@ -213,20 +213,20 @@ class Database:
 		for i in range(len(progress)):
 			progress[i] = {
 				"anime": {
-					"title": progress[i][11],
-					"alternative_title": progress[i][12],
-					"genre": ast.literal_eval(progress[i][13]),
-					"id": progress[i][2],
-					"img": progress[i][15],
-					"url": progress[i][14],
+					"title": progress[i][13],
+					"alternative_title": progress[i][14],
+					"genre": ast.literal_eval(progress[i][15]),
+					"id": progress[i][12],
+					"img": progress[i][17],
+					"url": progress[i][16],
 				},
 				"episode": progress[i][3],
 				"season": progress[i][4],
 				"progress": progress[i][5],
 				"completed": progress[i][6],
 				"poster": progress[i][8],
-				"season_name": progress[i][7],
-				"lang": progress[i][9],
+				"season_name": progress[i][9],
+				"lang": progress[i][10],
 			}
 		return (progress)
 
