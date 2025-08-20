@@ -3,6 +3,7 @@ FROM ubuntu:latest
 RUN apt update
 RUN apt upgrade -y
 RUN apt install python3 python3-pip uvicorn -y
+RUN apt install sqlite3 -y
 RUN apt-get update && apt-get install -y curl build-essential
 
 RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
