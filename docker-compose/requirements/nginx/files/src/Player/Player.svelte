@@ -96,7 +96,7 @@
 		</div>
 	</div>
 	<div class='tile right-part'>
-		<select id="seasons" on:change={(event) => {
+		<select id="seasons" bind:value={idSelectedSeason} on:change={(event) => {
 			idSelectedSeason = parseInt((event.target as HTMLSelectElement).value);
 			changeSeason(false);
 		}}>
