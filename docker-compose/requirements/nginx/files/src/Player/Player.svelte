@@ -50,9 +50,7 @@
 	if (data.anime.progress.find)
 	{
 		selectedEpisode = data.anime.progress.episode - 1;
-		console.log('aaaaaa ', data.anime.progress.season);
 		idSelectedSeason = data.anime.season.findIndex((season: Season) => season.url == data.anime.progress.season);
-		console.log('idSelectedSeason', idSelectedSeason);
 		if (idSelectedSeason == -1)
 			idSelectedSeason = 0;
 		changeSeason(true);

@@ -438,11 +438,11 @@
 			let season = data.season;
 			let isMovie = false;
 
-			if (anime?.genre.includes("Vf")) {
+			if (anime?.genre.some((g: string) => g.toLowerCase() === "vf")) {
 				data.season.forEach((element: Season) => {
 					season.push({
 						name: element.name,
-						url: element.url,
+						url: element.url.replace("vostfr", "vf"),
 						lang: "vf",
 					});
 				});
