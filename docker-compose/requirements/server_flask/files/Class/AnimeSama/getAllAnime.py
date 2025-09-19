@@ -14,7 +14,24 @@ def getAllAnime(db):
 		res = getList(soup)
 		if (res == None):
 			break
-		all_anime += res.replace('anime-sama.org', 'anime-sama.fr')
+		if isinstance(res, list):
+			for item in res:
+				if not isinstance(item, dict):
+					continue
+				if 'url' in item and isinstance(item['url'], str):
+					item['url'] = item['url'].replace('anime-sama.org', 'anime-sama.fr')
+				if 'img' in item and isinstance(item['img'], str):
+					item['img'] = item['img'].replace('anime-sama.org', 'anime-sama.fr')
+			all_anime.extend(res)
+		else:
+			try:
+				fixed = res.replace('anime-sama.org', 'anime-sama.fr')
+			except Exception:
+				fixed = res
+			if hasattr(fixed, '__iter__') and not isinstance(fixed, dict):
+				all_anime.extend(fixed)
+			else:
+				all_anime.append(fixed)
 		page += 1
 		sleep(0.5)
 	print(f'{len(all_anime)} anime found', end='\n\n')
