@@ -308,7 +308,7 @@ class AnimeSama:
 				for i, title in enumerate(list_title):
 					if (list_number_episode[i] == -1):
 						continue
-					data.append({'title': title, 'season': list_season[i], 'url': list_redirect[i], 'episode': list_number_episode[i]})
+					data.append({'title': title, 'season': list_season[i], 'url': list_redirect[i].replace('anime-sama.org', 'anime-sama.fr'), 'episode': list_number_episode[i]})
 				self.db.update_anime_status(data)
 				sleep(1800)
 			except Exception as e:

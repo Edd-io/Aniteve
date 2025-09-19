@@ -14,7 +14,7 @@ def getAllAnime(db):
 		res = getList(soup)
 		if (res == None):
 			break
-		all_anime += res
+		all_anime += res.replace('anime-sama.org', 'anime-sama.fr')
 		page += 1
 		sleep(0.5)
 	print(f'{len(all_anime)} anime found', end='\n\n')
