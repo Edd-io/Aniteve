@@ -30,10 +30,7 @@ class Proxy:
 	def vidmoly(url):
 		host = url.split('/')[2]
 		
-		if 'vidmoly.to' in host:
-			referer = 'https://vidmoly.to'
-		else:
-			referer = 'https://vidmoly.net'
+		referer = 'https://vidmoly.net'
 			
 		if (url.find('.m3u8') != -1):
 			headers = {

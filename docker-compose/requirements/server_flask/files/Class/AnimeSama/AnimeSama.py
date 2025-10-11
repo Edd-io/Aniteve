@@ -107,7 +107,9 @@ class AnimeSama:
 		)
 		episodes = json.loads(process.stdout)
 		for i, episode in enumerate(episodes):
-			for j, link in enumerate(episodes[episode]):
+			for j in range(len(episodes[episode])):
+				if (episodes[episode][j].find('vidmoly.to') != -1):
+					episodes[episode][j] = episodes[episode][j].replace('vidmoly.to', 'vidmoly.net')
 				episodes[episode][j] = episodes[episode][j].replace('https://', anime['serverUrl'] + SERV_URL_SRCFILE)
 				episodes[episode][j] = "".join(episodes[episode][j].split())
 			k = 0
