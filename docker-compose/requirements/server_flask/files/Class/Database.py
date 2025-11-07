@@ -79,6 +79,25 @@ class Database:
 				ALTER TABLE progress ADD COLUMN language TEXT
 			''')
 			self.conn.commit()
+		try:
+			cursor = self.conn.cursor()
+			cursor.execute("SELECT COUNT(*) FROM anime_list WHERE url LIKE ?", ('%anime-sama.fr%',))
+			count = cursor.fetchone()[0]
+			if count > 0:
+				cursor.execute(
+					"UPDATE anime_list SET url = REPLACE(url, ?, ?) WHERE url LIKE ?",
+					('anime-sama.fr', 'anime-sama.org', '%anime-sama.fr%')
+				)
+				self.conn.commit()
+				print(f"Updated {count} anime_list URL(s) from 'anime-sama.fr' to 'anime-sama.org'")
+		except Exception as e:
+			print(f"Error updating anime_list URLs: {e}")
+		finally:
+			try:
+				cursor.close()
+			except:
+				pass
+		
 
 	def insert_user(self, username):
 		cursor = self.conn.cursor()
