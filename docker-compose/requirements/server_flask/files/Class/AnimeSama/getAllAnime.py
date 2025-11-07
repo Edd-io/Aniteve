@@ -4,7 +4,7 @@ from time import sleep
 
 def getAllAnime(db):
 	all_anime = []
-	url = 'https://anime-sama.fr/catalogue/?type%5B0%5D=Anime&page='
+	url = 'https://anime-sama.org/catalogue/?type%5B0%5D=Anime&page='
 	page = 1
 	while True:
 		response = requests.get(url + str(page))
@@ -19,13 +19,13 @@ def getAllAnime(db):
 				if not isinstance(item, dict):
 					continue
 				if 'url' in item and isinstance(item['url'], str):
-					item['url'] = item['url'].replace('anime-sama.org', 'anime-sama.fr')
+					item['url'] = item['url'].replace('anime-sama.fr', 'anime-sama.org')
 				if 'img' in item and isinstance(item['img'], str):
-					item['img'] = item['img'].replace('anime-sama.org', 'anime-sama.fr')
+					item['img'] = item['img'].replace('anime-sama.fr', 'anime-sama.org')
 			all_anime.extend(res)
 		else:
 			try:
-				fixed = res.replace('anime-sama.org', 'anime-sama.fr')
+				fixed = res.replace('anime-sama.fr', 'anime-sama.org')
 			except Exception:
 				fixed = res
 			if hasattr(fixed, '__iter__') and not isinstance(fixed, dict):

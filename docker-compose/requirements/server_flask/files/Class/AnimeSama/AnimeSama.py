@@ -7,7 +7,7 @@ import requests
 import json
 import re
 
-URL_AS				= 'https://anime-sama.fr/'
+URL_AS				= 'https://anime-sama.org/'
 SERV_URL_SRCFILE	= '/api/srcFile?'
 SERV_URL_VIDEO		= '/api/video?'
 AVAILABLE_PLAYER	= ['sibnet', 'oneupload', 'sendvid', 'vidmoly']
@@ -310,7 +310,7 @@ class AnimeSama:
 				for i, title in enumerate(list_title):
 					if (list_number_episode[i] == -1):
 						continue
-					data.append({'title': title, 'season': list_season[i], 'url': list_redirect[i].replace('anime-sama.org', 'anime-sama.fr'), 'episode': list_number_episode[i]})
+					data.append({'title': title, 'season': list_season[i], 'url': list_redirect[i].replace('anime-sama.fr', 'anime-sama.org'), 'episode': list_number_episode[i]})
 				self.db.update_anime_status(data)
 				sleep(1800)
 			except Exception as e:
