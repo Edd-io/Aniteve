@@ -94,7 +94,7 @@ class AnimeSama:
 		return (season)
 	
 	def get_anime_episodes(self, anime):
-		response = requests.get(anime['url'] + '/' + anime['season'] + '/episodes.js?filever=' + str(self.filever_nb))
+		response = requests.get(anime['url'].replace('anime-sama.fr', 'anime-sama.org') + '/' + anime['season'] + '/episodes.js?filever=' + str(self.filever_nb))
 		self.filever_nb += 1
 		if (response.status_code != 200):
 			return ({'episodes': {}, 'number': 0})

@@ -363,8 +363,9 @@ class Database:
 
 	def create_backup(self):
 		try:
-			if (webhook_url == ''):
-				print('Webhook URL not set, backup disabled')
+			if not webhook_url or webhook_url == '' or not webhook_url.startswith(('http://', 'https://')):
+				print('Webhook URL not set or invalid, backup disabled')
+				return
 		except:
 			print('Webhook URL not set, backup disabled')
 			return
@@ -383,6 +384,11 @@ class Database:
 						print(f"Erreur lors de l'envoi : {response.status_code} - {response.text}")
 			except Exception as e:
 				message = f"Erreur lors de l'envoi : {e}"
-				response = requests.post(webhook_url, data={'content': message})
 				print(message)
+				# Don't try to post error to webhook if webhook itself is the problem
+				try:
+					if webhook_url and webhook_url.startswith(('http://', 'https://')):
+						requests.post(webhook_url, data={'content': message})
+				except:
+					pass  # Silently ignore if error notification fails
 			time.sleep(604800)
