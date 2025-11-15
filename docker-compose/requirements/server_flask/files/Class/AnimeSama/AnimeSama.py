@@ -6,6 +6,11 @@ import threading
 import cloudscraper
 import json
 import re
+import sys
+import os
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from WorkerLock import WorkerLock
 
 scraper = cloudscraper.create_scraper(
 	browser={
@@ -49,20 +54,28 @@ class AnimeSama:
 	disable_get_anime_status = False
 	disable_get_new_animes = False
 	filever_nb = 0
+	scraping_lock = None
+	threads_lock = None
 
 	def __init__(self, db):
 		self.db = db
+		
 		if not self.disable_get_new_animes:
-			self.get_anime_list()
+			self.scraping_lock = WorkerLock('anime_scraping')
+			if self.scraping_lock.acquire():
+				self.get_anime_list()
 		else:
 			print("\033[91mGet new animes is disabled.\033[0m")
+		
 		if not self.disable_get_anime_status:
-			self.start_threads()
+			self.threads_lock = WorkerLock('anime_threads')
+			if self.threads_lock.acquire():
+				self.start_threads()
 		else:
 			print("\033[91mGet anime status is disabled.\033[0m")
 
 	def start_threads(self):
-		print("Starting threads...")
+		print("Starting anime monitoring threads...")
 		self.thread_status_anime = threading.Thread(target=self.get_anime_status)
 		self.thread_status_anime.start()
 		self.thread_new_anime = threading.Thread(target=self.get_new_animes)

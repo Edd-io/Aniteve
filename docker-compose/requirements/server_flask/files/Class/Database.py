@@ -6,18 +6,23 @@ import requests
 from credientials import *
 import time
 import shutil
+from Class.WorkerLock import WorkerLock
 
 class Database:
 	thread_backup = None
 	threads_started = False
+	backup_lock = None
 
 	def __init__(self):
 		self.conn = sqlite3.connect('data/database.db', check_same_thread=False)
 		self.create_table()
+		
 		if not self.threads_started:
-			self.thread_backup = threading.Thread(target=self.create_backup)
-			self.thread_backup.start()
-			self.threads_started = True
+			self.backup_lock = WorkerLock('backup')
+			if self.backup_lock.acquire():
+				self.thread_backup = threading.Thread(target=self.create_backup)
+				self.thread_backup.start()
+				self.threads_started = True
 
 	def create_table(self):
 		cursor = self.conn.cursor()
@@ -377,18 +382,12 @@ class Database:
 					data = {'content': 'Nouvelle sauvegarde de la base de données'}
 					
 					response = requests.post(webhook_url, data=data, files=files)
-					
-					if response.status_code == 204:
-						print("Fichier envoyé avec succès !")
-					else:
-						print(f"Erreur lors de l'envoi : {response.status_code} - {response.text}")
 			except Exception as e:
 				message = f"Erreur lors de l'envoi : {e}"
 				print(message)
-				# Don't try to post error to webhook if webhook itself is the problem
 				try:
 					if webhook_url and webhook_url.startswith(('http://', 'https://')):
 						requests.post(webhook_url, data={'content': message})
 				except:
-					pass  # Silently ignore if error notification fails
+					pass
 			time.sleep(604800)

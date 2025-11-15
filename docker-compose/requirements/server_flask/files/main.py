@@ -34,7 +34,7 @@ def decode_token(token):
 		return (None)
 
 @app.route('/api/login', methods=['POST'])
-async def login():
+def login():
 	data = request.get_json()
 	need_keys = ['password']
 
@@ -49,7 +49,7 @@ async def login():
 		return jsonify({'error': str(e)})
 	
 @app.route('/api/check_token', methods=['POST'])
-async def check_token():
+def check_token():
 	data = request.get_json()
 	need_keys = ['token']
 
@@ -74,7 +74,7 @@ def check_token_in_request():
 	return (None)
 
 @app.route('/api/add_user', methods=['POST'])
-async def add_user():
+def add_user():
 	token_valid = check_token_in_request()
 
 	if (token_valid != None):
@@ -92,7 +92,7 @@ async def add_user():
 		return jsonify({'error': str(e)})
 
 @app.route('/api/get_users')
-async def get_users():
+def get_users():
 	token_valid = check_token_in_request()
 
 	if (token_valid != None):
@@ -104,7 +104,7 @@ async def get_users():
 		return jsonify({'error': str(e)})
 	
 @app.route('/api/get_name', methods=['POST'])
-async def get_name():
+def get_name():
 	token_valid = check_token_in_request()
 
 	if (token_valid != None):
@@ -123,7 +123,7 @@ async def get_name():
 
 
 @app.route('/api/get_all_anime')
-async def get_all_anime():
+def get_all_anime():
 	token_valid = check_token_in_request()
 
 	if (token_valid != None):
@@ -155,7 +155,7 @@ async def get_all_anime():
 		))
 
 @app.route('/api/get_anime_season', methods=['POST'])
-async def get_anime_season():
+def get_anime_season():
 	token_valid = check_token_in_request()
 
 	if (token_valid != None):
@@ -183,7 +183,7 @@ async def get_anime_season():
 		))
 
 @app.route('/api/get_anime_episodes', methods=['POST'])
-async def get_anime_episodes():
+def get_anime_episodes():
 	token_valid = check_token_in_request()
 
 	if (token_valid != None):
@@ -211,7 +211,7 @@ async def get_anime_episodes():
 		))
 	
 @app.route('/api/srcFile', methods=['POST'])
-async def srcFile():
+def srcFile():
 	token_valid = check_token_in_request()
 
 	if (token_valid != None):
@@ -244,7 +244,7 @@ async def srcFile():
 		))
 
 @app.route('/api/video')
-async def video():
+def video():
 	try:
 		with lock_list_available_ip:
 			if (request.headers['X-Real-IP']not in list_available_ip):
@@ -278,7 +278,7 @@ async def video():
 		return jsonify({'error': str(e)})
 
 @app.route('/api/update_progress', methods=['POST'])
-async def update_progress():
+def update_progress():
 	token_valid = check_token_in_request()
 
 	if (token_valid != None):
@@ -296,7 +296,7 @@ async def update_progress():
 		return jsonify({'error': str(e)})
 	
 @app.route('/api/get_progress', methods=['POST'])
-async def get_progress():
+def get_progress():
 	token_valid = check_token_in_request()
 
 	if (token_valid != None):
@@ -314,7 +314,7 @@ async def get_progress():
 		return jsonify({'error': str(e)})
 	
 @app.route('/api/get_all_progress', methods=['POST'])
-async def get_all_progress():
+def get_all_progress():
 	token_valid = check_token_in_request()
 
 	if (token_valid != None):
@@ -332,7 +332,7 @@ async def get_all_progress():
 		return jsonify({'error': str(e)})
 	
 @app.route('/api/tmdb', methods=['POST'])
-async def tmdb():
+def tmdb():
 	token_valid = check_token_in_request()
 
 	if (token_valid != None):
@@ -357,7 +357,7 @@ async def tmdb():
 		return jsonify({'error': str(e)})
 	
 @app.route('/api/get_average_color', methods=['POST'])
-async def get_average_color():
+def get_average_color():
 	token_valid = check_token_in_request()
 
 	if (token_valid != None):
@@ -386,7 +386,7 @@ async def get_average_color():
 
 
 @app.route('/api/download', methods=['POST'])
-async def download_func():
+def download_func():
 	token_valid = check_token_in_request()
 
 	if (token_valid != None):
@@ -404,7 +404,7 @@ async def download_func():
 		return {'error': str(e)}
 
 @app.route('/api/get_status_download')
-async def get_status_download():
+def get_status_download():
 	token_valid = check_token_in_request()
 
 	if (token_valid != None):
@@ -416,7 +416,7 @@ async def get_status_download():
 		return jsonify({'error': str(e)})
 	
 @app.route('/api/del_download', methods=['POST'])
-async def delete_download():
+def delete_download():
 	token_valid = check_token_in_request()
 
 	if (token_valid != None):
@@ -434,7 +434,7 @@ async def delete_download():
 		return {'error': str(e)}
 
 @app.route('/api/download/<name>')
-async def downloadEp(name):
+def downloadEp(name):
 	try:
 		with lock_list_available_ip:
 			if (request.headers['X-Real-IP'] not in list_available_ip):
@@ -453,7 +453,7 @@ async def downloadEp(name):
 		return jsonify({'error': str(e)})
 
 @app.route('/api/delete_progress', methods=['POST'])
-async def deleteProgress():
+def deleteProgress():
 	token_valid = check_token_in_request()
 
 	if (token_valid != None):
