@@ -1,6 +1,7 @@
 flask[async]
 bs4
 requests
+cloudscraper
 m3u8
 PyJWT
 gevent

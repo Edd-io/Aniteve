@@ -31,6 +31,8 @@ RUN echo 'password="'$PASSWORD_SERVER'"' >> credientials.py
 RUN echo 'secret_key="'$SECRET_KEY'"' >> credientials.py
 RUN echo 'webhook_url="'$WEBHOOK_URL'"' >> credientials.py
 
+RUN echo "precedence ::ffff:0:0/96  100" >> /etc/gai.conf
+
 STOPSIGNAL SIGKILL
 
 ENTRYPOINT [ "python3", "-u", "main.py" ]
