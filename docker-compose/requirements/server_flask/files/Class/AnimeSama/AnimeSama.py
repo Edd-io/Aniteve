@@ -3,9 +3,17 @@ from .getAllAnime import getAllAnime
 from time import sleep
 import subprocess
 import threading
-import requests
+import cloudscraper
 import json
 import re
+
+scraper = cloudscraper.create_scraper(
+	browser={
+		'browser': 'chrome',
+		'platform': 'windows',
+		'desktop': True
+	}
+)
 
 URL_AS				= 'https://anime-sama.org/'
 SERV_URL_SRCFILE	= '/api/srcFile?'
@@ -65,7 +73,8 @@ class AnimeSama:
 		getAllAnime(self.db)
 
 	def get_anime_season(self, anime):
-		response	= requests.get(anime['url'])
+		response	= scraper.get(anime['url'])
+		print(f"Fetching seasons from URL: {anime['url']}, Status Code: {response.status_code}")
 		response	= response.text.split('\n')
 		season		= []
 		isInComment = False
@@ -94,7 +103,7 @@ class AnimeSama:
 		return (season)
 	
 	def get_anime_episodes(self, anime):
-		response = requests.get(anime['url'].replace('anime-sama.fr', 'anime-sama.org') + '/' + anime['season'] + '/episodes.js?filever=' + str(self.filever_nb))
+		response = scraper.get(anime['url'].replace('anime-sama.fr', 'anime-sama.org') + '/' + anime['season'] + '/episodes.js?filever=' + str(self.filever_nb))
 		self.filever_nb += 1
 		if (response.status_code != 200):
 			return ({'episodes': {}, 'number': 0})
@@ -143,7 +152,7 @@ class AnimeSama:
 		headers = {
 			'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
 		}
-		response	= requests.get(episode, headers=headers)
+		response	= scraper.get(episode, headers=headers)
 		response	= response.text.split('\n')
 		url			= None
 
@@ -184,17 +193,17 @@ class AnimeSama:
 		timeout_duration = 3 if 'vidmoly.to' in episode else 30
 		
 		try:
-			response = requests.get(episode, headers=headers, timeout=timeout_duration)
+			response = scraper.get(episode, headers=headers, timeout=timeout_duration)
 			print(f"Response status: {response.status_code}")
 			print(f"Response length: {len(response.text)}")
-		except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
+		except Exception as e:
 			print(f"Request to {episode} failed after {timeout_duration}s: {e}")
 			if episode_net:
 				print(f"Trying alternative domain: {episode_net}")
 				try:
 					headers['Host'] = 'vidmoly.net'
 					headers['Referer'] = 'https://vidmoly.net'
-					response = requests.get(episode_net, headers=headers, timeout=30)
+					response = scraper.get(episode_net, headers=headers, timeout=30)
 					episode = episode_net
 				except Exception as e2:
 					print(f"Alternative request also failed: {e2}")
@@ -208,7 +217,7 @@ class AnimeSama:
 				try:
 					headers['Host'] = 'vidmoly.net'
 					headers['Referer'] = 'https://vidmoly.net'
-					response = requests.get(episode_net, headers=headers, timeout=30)
+					response = scraper.get(episode_net, headers=headers, timeout=30)
 					episode = episode_net
 				except Exception as e2:
 					print(f"Alternative request also failed: {e2}")
@@ -233,7 +242,7 @@ class AnimeSama:
 		return (url)
 	
 	def __get_source_file_from_oneupload(self, episode, serverUrl):
-		response	= requests.get(episode)
+		response	= scraper.get(episode)
 		response	= response.text.split('\n')
 		url			= None
 
@@ -253,7 +262,7 @@ class AnimeSama:
 		headers = {
 			'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
 		}
-		response	= requests.get(episode, headers=headers)
+		response	= scraper.get(episode, headers=headers)
 		response	= response.text.split('\n')
 		url			= None
 
@@ -273,7 +282,7 @@ class AnimeSama:
 		while (1):
 			try:
 				sleep(30)
-				response = requests.get(URL_AS)
+				response = scraper.get(URL_AS)
 				soup = BeautifulSoup(response.text, 'html.parser')
 				list_anime = soup.find('div', id='containerAjoutsAnimes')
 				list_title = list_anime.find_all('h1')
