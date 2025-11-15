@@ -36,6 +36,6 @@ RUN echo "precedence ::ffff:0:0/96  100" >> /etc/gai.conf
 STOPSIGNAL SIGKILL
 
 # Production server
-ENTRYPOINT ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "2", "--worker-class", "gevent", "--timeout", "120", "main:app"]
+ENTRYPOINT ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "1", "--worker-class", "gevent", "--timeout", "120", "main:app"]
 # Development server
 # ENTRYPOINT [ "python3", "-u", "main.py" ]
