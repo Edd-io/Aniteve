@@ -33,6 +33,10 @@ def decode_token(token):
 	except jwt.InvalidTokenError:
 		return (None)
 
+@app.route('/api/health')
+def health():
+	return jsonify({'status': 'ok'})
+
 @app.route('/api/login', methods=['POST'])
 def login():
 	data = request.get_json()
@@ -142,6 +146,249 @@ def get_all_anime():
 			})
 		return (Response(
 			response=json.dumps(all_anime),
+			status=200,
+			mimetype='application/json',
+			headers={'Access-Control-Allow-Origin': '*'}
+		))
+	except Exception as e:
+		return (Response(
+			response=json.dumps({'error': str(e)}),
+			status=500,
+			mimetype='application/json',
+			headers={'Access-Control-Allow-Origin': '*'}
+		))
+
+@app.route('/api/get_random_anime')
+def get_random_anime():
+	token_valid = check_token_in_request()
+
+	if (token_valid != None):
+		return (token_valid)
+	try:
+		limit = request.args.get('limit', 10, type=int)
+		anime_list = db.get_random_anime(limit)
+		all_anime = []
+		for anime in anime_list:
+			all_anime.append({
+				'id': anime[0],
+				'title': anime[1],
+				'alternative_title': anime[2],
+				'genre': ast.literal_eval(anime[3]) if anime[3] else [],
+				'url': anime[4],
+				'img': anime[5]
+			})
+		return (Response(
+			response=json.dumps(all_anime),
+			status=200,
+			mimetype='application/json',
+			headers={'Access-Control-Allow-Origin': '*'}
+		))
+	except Exception as e:
+		return (Response(
+			response=json.dumps({'error': str(e)}),
+			status=500,
+			mimetype='application/json',
+			headers={'Access-Control-Allow-Origin': '*'}
+		))
+
+@app.route('/api/get_anime_by_genre')
+def get_anime_by_genre():
+	token_valid = check_token_in_request()
+
+	if (token_valid != None):
+		return (token_valid)
+	try:
+		genre = request.args.get('genre', '', type=str)
+		limit = request.args.get('limit', 10, type=int)
+		if not genre:
+			return jsonify({'error': 'Missing genre parameter'})
+		anime_list = db.get_anime_by_genre(genre, limit)
+		all_anime = []
+		for anime in anime_list:
+			all_anime.append({
+				'id': anime[0],
+				'title': anime[1],
+				'alternative_title': anime[2],
+				'genre': ast.literal_eval(anime[3]) if anime[3] else [],
+				'url': anime[4],
+				'img': anime[5]
+			})
+		return (Response(
+			response=json.dumps(all_anime),
+			status=200,
+			mimetype='application/json',
+			headers={'Access-Control-Allow-Origin': '*'}
+		))
+	except Exception as e:
+		return (Response(
+			response=json.dumps({'error': str(e)}),
+			status=500,
+			mimetype='application/json',
+			headers={'Access-Control-Allow-Origin': '*'}
+		))
+
+@app.route('/api/get_all_genres')
+def get_all_genres():
+	token_valid = check_token_in_request()
+
+	if (token_valid != None):
+		return (token_valid)
+	try:
+		genres = db.get_all_genres()
+		return (Response(
+			response=json.dumps(genres),
+			status=200,
+			mimetype='application/json',
+			headers={'Access-Control-Allow-Origin': '*'}
+		))
+	except Exception as e:
+		return (Response(
+			response=json.dumps({'error': str(e)}),
+			status=500,
+			mimetype='application/json',
+			headers={'Access-Control-Allow-Origin': '*'}
+		))
+
+@app.route('/api/get_recent_anime')
+def get_recent_anime():
+	token_valid = check_token_in_request()
+
+	if (token_valid != None):
+		return (token_valid)
+	try:
+		limit = request.args.get('limit', 10, type=int)
+		anime_list = db.get_recent_anime(limit)
+		all_anime = []
+		for anime in anime_list:
+			all_anime.append({
+				'id': anime[0],
+				'title': anime[1],
+				'alternative_title': anime[2],
+				'genre': ast.literal_eval(anime[3]) if anime[3] else [],
+				'url': anime[4],
+				'img': anime[5]
+			})
+		return (Response(
+			response=json.dumps(all_anime),
+			status=200,
+			mimetype='application/json',
+			headers={'Access-Control-Allow-Origin': '*'}
+		))
+	except Exception as e:
+		return (Response(
+			response=json.dumps({'error': str(e)}),
+			status=500,
+			mimetype='application/json',
+			headers={'Access-Control-Allow-Origin': '*'}
+		))
+
+@app.route('/api/search_anime')
+def search_anime():
+	token_valid = check_token_in_request()
+
+	if (token_valid != None):
+		return (token_valid)
+	try:
+		query = request.args.get('q', '', type=str)
+		limit = request.args.get('limit', 8, type=int)
+		if not query or len(query) < 2:
+			return (Response(
+				response=json.dumps([]),
+				status=200,
+				mimetype='application/json',
+				headers={'Access-Control-Allow-Origin': '*'}
+			))
+		anime_list = db.search_anime(query, limit)
+		all_anime = []
+		for anime in anime_list:
+			all_anime.append({
+				'id': anime[0],
+				'title': anime[1],
+				'alternative_title': anime[2],
+				'genre': ast.literal_eval(anime[3]) if anime[3] else [],
+				'url': anime[4],
+				'img': anime[5]
+			})
+		return (Response(
+			response=json.dumps(all_anime),
+			status=200,
+			mimetype='application/json',
+			headers={'Access-Control-Allow-Origin': '*'}
+		))
+	except Exception as e:
+		return (Response(
+			response=json.dumps({'error': str(e)}),
+			status=500,
+			mimetype='application/json',
+			headers={'Access-Control-Allow-Origin': '*'}
+		))
+
+@app.route('/api/get_user_stats', methods=['POST'])
+def get_user_stats():
+	token_valid = check_token_in_request()
+
+	if (token_valid != None):
+		return (token_valid)
+	try:
+		data = request.get_json()
+		if 'idUser' not in data:
+			return jsonify({'error': 'Missing idUser'})
+		stats = db.get_user_stats(data['idUser'])
+		return (Response(
+			response=json.dumps(stats),
+			status=200,
+			mimetype='application/json',
+			headers={'Access-Control-Allow-Origin': '*'}
+		))
+	except Exception as e:
+		return (Response(
+			response=json.dumps({'error': str(e)}),
+			status=500,
+			mimetype='application/json',
+			headers={'Access-Control-Allow-Origin': '*'}
+		))
+
+@app.route('/api/get_home_data')
+def get_home_data():
+	token_valid = check_token_in_request()
+
+	if (token_valid != None):
+		return (token_valid)
+	try:
+		import random
+
+		main_genres = db.get_main_genres()
+
+		# Shuffle and pick 3 random main genres
+		if len(main_genres) > 3:
+			selected_genres = random.sample(main_genres, 3)
+		else:
+			selected_genres = main_genres
+
+		result = {
+			'sections': []
+		}
+
+		for genre in selected_genres:
+			anime_list = db.get_anime_by_genre(genre, 8)
+			if len(anime_list) > 0:
+				section = {
+					'title': genre,
+					'anime': []
+				}
+				for anime in anime_list:
+					section['anime'].append({
+						'id': anime[0],
+						'title': anime[1],
+						'alternative_title': anime[2],
+						'genre': ast.literal_eval(anime[3]) if anime[3] else [],
+						'url': anime[4],
+						'img': anime[5]
+					})
+				result['sections'].append(section)
+
+		return (Response(
+			response=json.dumps(result),
 			status=200,
 			mimetype='application/json',
 			headers={'Access-Control-Allow-Origin': '*'}

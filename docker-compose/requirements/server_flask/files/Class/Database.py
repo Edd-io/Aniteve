@@ -163,6 +163,220 @@ class Database:
 		cursor.close()
 		return (anime_list)
 
+	def get_random_anime(self, limit=10):
+		cursor = self.conn.cursor()
+		anime_list = cursor.execute('''
+			SELECT * FROM anime_list
+			ORDER BY RANDOM()
+			LIMIT ?''', (limit,)).fetchall()
+		cursor.close()
+		return (anime_list)
+
+	def get_anime_by_genre(self, genre, limit=10):
+		cursor = self.conn.cursor()
+		anime_list = cursor.execute('''
+			SELECT * FROM anime_list
+			WHERE genre LIKE ?
+			ORDER BY RANDOM()
+			LIMIT ?''', (f'%{genre}%', limit)).fetchall()
+		cursor.close()
+		return (anime_list)
+
+	def get_all_genres(self):
+		cursor = self.conn.cursor()
+		anime_list = cursor.execute('''
+			SELECT genre FROM anime_list''').fetchall()
+		cursor.close()
+		print(f"[DEBUG] Found {len(anime_list)} anime for genres")
+		genres = set()
+		for anime in anime_list:
+			try:
+				raw_genre = anime[0]
+				if raw_genre:
+					if raw_genre.startswith('['):
+						genre_list = ast.literal_eval(raw_genre)
+					else:
+						genre_list = [g.strip() for g in raw_genre.split(',')]
+
+					for genre in genre_list:
+						if genre and genre.strip():
+							main_genre = genre.strip().split(' - ')[0].strip()
+							if main_genre:
+								genres.add(main_genre)
+			except Exception as e:
+				print(f"[DEBUG] Error parsing genre '{anime[0]}': {e}")
+		print(f"[DEBUG] Returning {len(genres)} genres: {sorted(list(genres))[:5]}...")
+		return sorted(list(genres))
+
+	def get_main_genres(self):
+		main_genres = [
+			'Action', 'Aventure', 'Comédie', 'Drame', 'Fantasy',
+			'Horreur', 'Romance', 'Sci-Fi', 'Shonen', 'Seinen',
+			'Shojo', 'Sport', 'Thriller', 'Mystère', 'Surnaturel',
+			'Slice of Life', 'Mecha', 'Musique', 'Psychologique', 'Historique'
+		]
+
+		all_genres = self.get_all_genres()
+		available_genres = []
+
+		for main in main_genres:
+			for genre in all_genres:
+				if genre.lower() == main.lower():
+					available_genres.append(genre)
+					break
+
+		return available_genres
+
+	def get_recent_anime(self, limit=10):
+		cursor = self.conn.cursor()
+		anime_list = cursor.execute('''
+			SELECT * FROM anime_list
+			ORDER BY id DESC
+			LIMIT ?''', (limit,)).fetchall()
+		cursor.close()
+		return (anime_list)
+
+	def search_anime(self, query, limit=8):
+		cursor = self.conn.cursor()
+		search_pattern = f'%{query}%'
+		anime_list = cursor.execute('''
+			SELECT * FROM anime_list
+			WHERE title LIKE ? OR alternative_title LIKE ?
+			ORDER BY
+				CASE
+					WHEN title LIKE ? THEN 0
+					WHEN title LIKE ? THEN 1
+					ELSE 2
+				END,
+				title
+			LIMIT ?''', (search_pattern, search_pattern, f'{query}%', search_pattern, limit)).fetchall()
+		cursor.close()
+		return (anime_list)
+
+	def get_user_stats(self, id_user):
+		cursor = self.conn.cursor()
+		stats = {}
+
+		cursor.execute('''
+			SELECT COUNT(DISTINCT id_anime) FROM progress WHERE id_user = ?
+		''', (id_user,))
+		stats['total_anime'] = cursor.fetchone()[0] or 0
+
+		cursor.execute('''
+			SELECT COUNT(*) FROM progress WHERE id_user = ? AND status = 1
+		''', (id_user,))
+		stats['anime_completed'] = cursor.fetchone()[0] or 0
+
+		cursor.execute('''
+			SELECT COUNT(*) FROM progress WHERE id_user = ? AND (status = 0 OR status = 2)
+		''', (id_user,))
+		stats['anime_in_progress'] = cursor.fetchone()[0] or 0
+
+		cursor.execute('''
+			SELECT COUNT(*) FROM progress WHERE id_user = ? AND status = 3
+		''', (id_user,))
+		stats['anime_new_season'] = cursor.fetchone()[0] or 0
+
+		cursor.execute('''
+			SELECT SUM(episode) FROM progress WHERE id_user = ?
+		''', (id_user,))
+		stats['total_episodes'] = cursor.fetchone()[0] or 0
+
+		stats['total_watch_time_hours'] = round((stats['total_episodes'] * 24) / 60, 1)
+
+		cursor.execute('''
+			SELECT COUNT(*) FROM progress WHERE id_user = ? AND language LIKE '%vostfr%'
+		''', (id_user,))
+		stats['vostfr_count'] = cursor.fetchone()[0] or 0
+
+		cursor.execute('''
+			SELECT COUNT(*) FROM progress WHERE id_user = ? AND language LIKE '%vf%' AND language NOT LIKE '%vostfr%'
+		''', (id_user,))
+		stats['vf_count'] = cursor.fetchone()[0] or 0
+
+		cursor.execute('''
+			SELECT anime_list.genre FROM progress
+			JOIN anime_list ON progress.id_anime = anime_list.id
+			WHERE progress.id_user = ?
+		''', (id_user,))
+		genre_rows = cursor.fetchall()
+		genre_count = {}
+		for row in genre_rows:
+			try:
+				genres = ast.literal_eval(row[0]) if row[0] else []
+				for genre in genres:
+					main_genre = genre.split(' - ')[0].strip()
+					if main_genre and main_genre.lower() not in ['vostfr', 'vf', 'anime', 'scans', 'film', '-']:
+						genre_count[main_genre] = genre_count.get(main_genre, 0) + 1
+			except:
+				pass
+		sorted_genres = sorted(genre_count.items(), key=lambda x: x[1], reverse=True)[:5]
+		stats['top_genres'] = [{'name': g[0], 'count': g[1]} for g in sorted_genres]
+
+		cursor.execute('''
+			SELECT strftime('%w', see_date) as day, COUNT(*) as count
+			FROM progress
+			WHERE id_user = ?
+			GROUP BY day
+			ORDER BY day
+		''', (id_user,))
+		day_activity = cursor.fetchall()
+		days = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam']
+		stats['activity_by_day'] = [{'day': days[int(d[0])], 'count': d[1]} for d in day_activity]
+
+		cursor.execute('''
+			SELECT strftime('%Y-%m', see_date) as month, COUNT(*) as count
+			FROM progress
+			WHERE id_user = ? AND see_date >= date('now', '-6 months')
+			GROUP BY month
+			ORDER BY month
+		''', (id_user,))
+		month_activity = cursor.fetchall()
+		stats['activity_by_month'] = [{'month': m[0], 'count': m[1]} for m in month_activity]
+
+		cursor.execute('''
+			SELECT anime_list.title, anime_list.img, progress.episode, progress.season_name
+			FROM progress
+			JOIN anime_list ON progress.id_anime = anime_list.id
+			WHERE progress.id_user = ?
+			ORDER BY progress.episode DESC
+			LIMIT 5
+		''', (id_user,))
+		top_anime = cursor.fetchall()
+		stats['top_anime'] = [{'title': a[0], 'img': a[1], 'episodes': a[2], 'season': a[3]} for a in top_anime]
+
+		cursor.execute('''
+			SELECT anime_list.title, anime_list.img, progress.episode, progress.season_name,
+				   datetime(progress.see_date, 'localtime') as local_date
+			FROM progress
+			JOIN anime_list ON progress.id_anime = anime_list.id
+			WHERE progress.id_user = ?
+			ORDER BY progress.see_date DESC
+			LIMIT 10
+		''', (id_user,))
+		recent = cursor.fetchall()
+		stats['recent_activity'] = [{'title': r[0], 'img': r[1], 'episode': r[2], 'season': r[3], 'date': r[4]} for r in recent]
+
+		if stats['total_anime'] > 0:
+			stats['completion_rate'] = round((stats['anime_completed'] / stats['total_anime']) * 100, 1)
+		else:
+			stats['completion_rate'] = 0
+
+		if stats['total_anime'] > 0:
+			stats['avg_episodes_per_anime'] = round(stats['total_episodes'] / stats['total_anime'], 1)
+		else:
+			stats['avg_episodes_per_anime'] = 0
+
+		cursor.execute('''
+			SELECT MIN(see_date), MAX(see_date) FROM progress WHERE id_user = ?
+		''', (id_user,))
+		dates = cursor.fetchone()
+		stats['first_watch'] = dates[0] if dates[0] else None
+		stats['last_watch'] = dates[1] if dates[1] else None
+
+		cursor.close()
+		return stats
+
 	# status: 0 = watching, 1 = completed, 2 = new episode, 3 = new season
 	def update_progress(self, anime):
 		cursor = self.conn.cursor()

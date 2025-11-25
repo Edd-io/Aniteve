@@ -1,30 +1,30 @@
 <script lang='ts'>
+	import '@fortawesome/fontawesome-free/css/all.css';
 	import { onMount } from 'svelte';
 	import { navigate } from 'svelte-routing';
-    import { on } from 'svelte/events';
 
 	export let menu: any;
 
-	const	serverUrl				= '';
-	let		progressData: any		= [];
-	let		buttonActive			= false;
-	let		listMode				= true;
+	const serverUrl = '';
+	let progressData: any = [];
+	let buttonActive = false;
+	let viewMode: 'grid' | 'list' = 'list';
+	let isLoading = true;
+	let filterStatus = 'all';
+
+	menu.dominantColor = '#0d0d0d';
+	menu.selected = 2;
 
 	onMount(() => {
 		const interval = setInterval(() => {
-			if (menu.user.id !== -1)
-			{
+			if (menu.user.id !== -1) {
 				getDataProgress();
 				clearInterval(interval);
 			}
 		}, 100);
 	});
 
-	menu.dominantColor = '#c7c7c75c';
-	menu.selected = 2;
-
-	function getDataProgress()
-	{
+	function getDataProgress() {
 		fetch(serverUrl + '/api/get_all_progress', {
 			method: 'POST',
 			headers: {
@@ -33,66 +33,49 @@
 			},
 			body: JSON.stringify({idUser: menu.user.id}),
 		})
-		.then((response) => {
-			return (response.json());
-		})
-		.then((json) => {
+		.then(response => response.json())
+		.then(json => {
 			progressData = json;
+			isLoading = false;
 		})
-		.catch((error) => {
+		.catch(error => {
 			console.warn(error);
+			isLoading = false;
 		});
 	}
 
-	function hideAll(id: string, data: any, event: any)
-	{
-		if (buttonActive)
-			return;
-		if (event.target.id === 'deleteBtn')
-			return;
+	function selectAnime(id: string, data: any, event: any) {
+		if (buttonActive) return;
+		if ((event.target as HTMLElement).closest('.delete-btn')) return;
+
 		buttonActive = true;
-		const animeResumed = document.querySelector('#' + id) as HTMLElement;
-		const copy = animeResumed.cloneNode(true) as HTMLElement;
-		const pos = animeResumed.getBoundingClientRect();
+		const element = document.getElementById(id);
+		if (element) {
+			element.style.animation = 'choose 0.4s ease-out';
+			element.style.opacity = '0';
+		}
 
-		animeResumed.parentNode?.insertBefore(copy, animeResumed);
-		copy.style.opacity = '0';
-		animeResumed.remove();
-		document.body.appendChild(animeResumed);
-
-		animeResumed.style.position = 'absolute';
-		animeResumed.style.top = `calc(${pos.top}px - 1rem)`;
-		animeResumed.style.left = `calc(${pos.left}px - 0.1rem)`;
-		animeResumed.style.width = pos.width + 'px';
-		animeResumed.style.height = pos.height + 'px';
-		animeResumed.style.zIndex = '999';
-		const partClass = document.querySelector('.main');
-		const htmlPartClass = partClass as HTMLElement;
-		htmlPartClass.style.animation = 'fadeOut 0.5s';
-		setTimeout(() => {
-			htmlPartClass.style.opacity = '0';
-		}, 450);
 		setTimeout(() => {
 			menu.data = data;
-			animeResumed.style.animation = 'choose 0.5s';
-			animeResumed.style.opacity = '0';
-			setTimeout(() => {
-				menu.data = data;
-				menu.selected = 3;
-				navigate('/anime', {replace: true});
-			}, 400);
-		}, 500);
+			menu.selected = 4;
+			navigate('/player', {replace: true});
+		}, 350);
 	}
 
-	function confirmDelete(animeId: string, id: number)
-	{
-		const	animeResumed = document.querySelector('#' + animeId) as HTMLElement;
-		const	btnDelete = animeResumed.querySelector('#deleteBtn') as HTMLElement;
+	function confirmDelete(animeId: string, id: number) {
+		const element = document.getElementById(animeId);
+		const btn = element?.querySelector('.delete-btn') as HTMLElement;
 
-		if (btnDelete.innerText == 'Supprimer')
-			btnDelete.innerText = 'Confirmer';
-		else
-		{
+		if (btn?.dataset.confirm !== 'true') {
+			btn.dataset.confirm = 'true';
+			btn.innerHTML = '<i class="fas fa-check"></i> Confirmer';
+			setTimeout(() => {
+				if (btn) {
+					btn.dataset.confirm = 'false';
+					btn.innerHTML = '<i class="fas fa-trash"></i>';
+				}
+			}, 3000);
+		} else {
 			fetch(serverUrl + '/api/delete_progress', {
 				method: 'POST',
 				headers: {
@@ -101,79 +84,144 @@
 				},
 				body: JSON.stringify({idUser: menu.user.id, id: id}),
 			})
-			.catch((error) => {
-				console.warn(error);
-			});
-			animeResumed.remove();
+			.then(() => {
+				if (element) {
+					element.style.animation = 'fadeOut 0.3s ease-out';
+					setTimeout(() => element.remove(), 280);
+				}
+			})
+			.catch(console.warn);
 		}
 	}
 
+	function getStatusInfo(status: number) {
+		switch(status) {
+			case 0:
+			case 2:
+				return { label: 'En cours', color: '#f59e0b', icon: 'fa-play' };
+			case 1:
+				return { label: 'Terminé', color: '#22c55e', icon: 'fa-check' };
+			case 3:
+				return { label: 'Nouvelle saison', color: '#3b82f6', icon: 'fa-star' };
+			default:
+				return { label: 'Inconnu', color: '#6b7280', icon: 'fa-question' };
+		}
+	}
+
+	function getFilteredData() {
+		if (filterStatus === 'all') return progressData;
+		if (filterStatus === 'watching') return progressData.filter((d: any) => d.completed === 0 || d.completed === 2);
+		if (filterStatus === 'completed') return progressData.filter((d: any) => d.completed === 1);
+		if (filterStatus === 'new') return progressData.filter((d: any) => d.completed === 3);
+		return progressData;
+	}
 </script>
 
-<main class='main'>
-	<div class='title-div'>
-		<h1>Liste de visionnage</h1>
-	</div>
-	<div class={!listMode ? 'tile-div' : 'line-mode'}>
-		<div class='filter-bar'>
-			<button on:click={() => listMode = !listMode}>
-				<p style="font-size: 0.8rem; color: white;">
-					{#if listMode}
-						Mode liste
-					{:else}
-						Mode tuile
-					{/if}
-				</p>
-			</button>
+<main>
+	<div class="page-header">
+		<h1>Ma Liste</h1>
+		<div class="header-controls">
+			<div class="filter-group">
+				<button
+					class="filter-btn"
+					class:active={filterStatus === 'all'}
+					on:click={() => filterStatus = 'all'}
+				>
+					Tout
+				</button>
+				<button
+					class="filter-btn"
+					class:active={filterStatus === 'watching'}
+					on:click={() => filterStatus = 'watching'}
+				>
+					En cours
+				</button>
+				<button
+					class="filter-btn"
+					class:active={filterStatus === 'completed'}
+					on:click={() => filterStatus = 'completed'}
+				>
+					Terminé
+				</button>
+				<button
+					class="filter-btn"
+					class:active={filterStatus === 'new'}
+					on:click={() => filterStatus = 'new'}
+				>
+					Nouveau
+				</button>
+			</div>
+			<div class="view-toggle">
+				<button
+					class:active={viewMode === 'list'}
+					on:click={() => viewMode = 'list'}
+				>
+					<i class="fas fa-list"></i>
+				</button>
+				<button
+					class:active={viewMode === 'grid'}
+					on:click={() => viewMode = 'grid'}
+				>
+					<i class="fas fa-th"></i>
+				</button>
+			</div>
 		</div>
-		{#each progressData as animeData}
-				{#if !listMode}
-					<button class='anime-div' id={'anime' + animeData.anime.id} on:click={(event) => {
-						hideAll('anime' + animeData.anime.id, animeData.anime, event);
-					}}>
-							<div class='img-container'>
-								<img src={animeData.poster} alt={animeData.title} />
-								<div class='progress-bar' style='width: {animeData.progress}%'></div>
-							</div>
-							<h2>{animeData.anime.title.length > 30 ? animeData.anime.title.substring(0, 30) + '...' : animeData.anime.title}</h2>
-							<div class='status'>
-								{#if animeData.completed === 0 || animeData.completed === 2}
-									<p style="background-color: #fc7b03;">En cours</p>
-								{:else if animeData.completed === 1}
-									<p style="background-color: #0da11e;">À jour</p>
-								{:else if animeData.completed === 3}
-									<p style="background-color: #2e8c8b;">Nouvelle saison</p>
-								{/if}
-							</div>
-					</button>
-				{:else}
-					<button class='anime-div-line' id={'anime' + animeData.anime.id} on:click={(event) => {
-						hideAll('anime' + animeData.anime.id, animeData.anime, event);
-					}}>
-						<img src={animeData.poster} alt={animeData.title} />
-						<div>
-							<p>{animeData.anime.title}</p>
-							<p style='font-size: 0.8rem; color: #c7c7c7;'>
-								{#if animeData.completed === 0 || animeData.completed === 2}
-									En cours
-								{:else if animeData.completed === 1}
-									À jour
-								{:else if animeData.completed === 3}
-									Nouvelle saison
-								{/if}
-							</p>
-						</div>
-						<div class='btns'>
-							<!-- svelte-ignore a11y_click_events_have_key_events -->
-							<div on:click={() => {confirmDelete('anime' + animeData.anime.id, animeData.anime.id)}} role="button" tabindex="0" id='deleteBtn'>
-								Supprimer
-							</div>
-
-						</div>
-					</button>
-				{/if}
-		{/each}
 	</div>
+
+	{#if isLoading}
+		<div class="loading">
+			<i class="fas fa-spinner fa-spin"></i>
+		</div>
+	{:else if getFilteredData().length === 0}
+		<div class="empty-state">
+			<i class="fas fa-film"></i>
+			<p>Aucun anime dans votre liste</p>
+			<span>Regarde des anime pour les voir apparaître ici</span>
+		</div>
+	{:else}
+		<div class="anime-container" class:grid-view={viewMode === 'grid'}>
+			{#each getFilteredData() as item}
+				{@const status = getStatusInfo(item.completed)}
+				<div
+					class="anime-item"
+					class:grid-item={viewMode === 'grid'}
+					id={'anime-' + item.anime.id}
+					role="button"
+					tabindex="0"
+					on:click={(e) => selectAnime('anime-' + item.anime.id, item.anime, e)}
+					on:keydown={(e) => e.key === 'Enter' && selectAnime('anime-' + item.anime.id, item.anime, e)}
+				>
+					<div class="poster">
+						<img src={item.poster} alt={item.anime.title} />
+						<div class="progress-bar">
+							<div class="progress" style="width: {item.progress}%"></div>
+						</div>
+						{#if item.completed === 2}
+							<span class="new-badge">Nouvel épisode</span>
+						{/if}
+					</div>
+
+					<div class="info">
+						<h3>{item.anime.title}</h3>
+						<p class="episode-info">
+							Épisode {item.episode} {item.season_name ? '• ' + item.season_name : ''}
+						</p>
+						<div class="status-badge" style="--status-color: {status.color}">
+							<i class="fas {status.icon}"></i>
+							{status.label}
+						</div>
+					</div>
+
+					<button
+						class="delete-btn"
+						on:click|stopPropagation={() => confirmDelete('anime-' + item.anime.id, item.anime.id)}
+					>
+						<i class="fas fa-trash"></i>
+					</button>
+				</div>
+			{/each}
+		</div>
+	{/if}
 </main>
 
 <style>
@@ -181,162 +229,312 @@
 		flex: 1;
 		height: 100%;
 		color: white;
-		padding: 1rem;
+		padding: 1.5rem 2rem;
+		overflow-y: auto;
+		overflow-x: hidden;
 	}
-	.tile-div {
+
+	.page-header {
 		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		margin-bottom: 1.5rem;
 		flex-wrap: wrap;
-		justify-content: center;
+		gap: 1rem;
 	}
-	.line-mode {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		overflow: auto;
-		height: calc(100% - 3.5rem);
+
+	.page-header h1 {
+		font-size: 1.5rem;
+		font-weight: 600;
+		color: #ffffff;
 	}
-	.title-div {
-		padding-inline: 1rem;
-		padding-block: 0.3rem;
-		background-color: #c7c7c75c;
-		border-radius: 0.5rem;
+
+	.header-controls {
 		display: flex;
 		align-items: center;
+		gap: 1rem;
 	}
-	.title-div h1 {
-		font-size: 1rem;
-		text-align: center;
-		width: 100%;
-		margin-block: 0.5rem;
-	}
-	.anime-div {
-		position: relative;
+
+	.filter-group {
 		display: flex;
-		flex-direction: column;
-		margin-block: 1rem;
-		margin-inline: 0.3rem;
-		background-color: #c7c7c75c;
+		gap: 0.5rem;
+	}
+
+	.filter-btn {
+		padding: 0.5rem 1rem;
+		background-color: rgba(255, 255, 255, 0.05);
+		border: none;
 		border-radius: 0.5rem;
-		padding: 0.5rem;
-		width: 8rem;
-		height: 15rem;
-		min-width: 8rem;
-		text-align: center;
-		transition: background-color 0.5s, transform 0.5s;
+		color: rgba(255, 255, 255, 0.6);
+		font-size: 0.85rem;
 		cursor: pointer;
-		color: white;
+		transition: all 0.2s;
+	}
+
+	.filter-btn:hover {
+		background-color: rgba(255, 255, 255, 0.1);
+		color: rgba(255, 255, 255, 0.8);
+	}
+
+	.filter-btn.active {
+		background-color: rgba(245, 158, 11, 0.15);
+		color: #f59e0b;
+	}
+
+	.view-toggle {
+		display: flex;
+		background-color: rgba(255, 255, 255, 0.05);
+		border-radius: 0.5rem;
+		padding: 0.25rem;
+	}
+
+	.view-toggle button {
+		padding: 0.5rem 0.75rem;
+		background: none;
+		border: none;
+		border-radius: 0.375rem;
+		color: rgba(255, 255, 255, 0.5);
+		cursor: pointer;
+		transition: all 0.2s;
+	}
+
+	.view-toggle button:hover {
+		color: rgba(255, 255, 255, 0.8);
+	}
+
+	.view-toggle button.active {
+		background-color: rgba(255, 255, 255, 0.1);
+		color: #ffffff;
+	}
+
+	.loading {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		height: 50vh;
+		font-size: 2rem;
+		color: rgba(255, 255, 255, 0.5);
+	}
+
+	.empty-state {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		height: 50vh;
+		color: rgba(255, 255, 255, 0.5);
+		gap: 1rem;
+	}
+
+	.empty-state i {
+		font-size: 4rem;
+		opacity: 0.3;
+	}
+
+	.empty-state p {
+		font-size: 1.1rem;
+		color: rgba(255, 255, 255, 0.7);
+	}
+
+	.empty-state span {
+		font-size: 0.9rem;
+		color: rgba(255, 255, 255, 0.4);
+	}
+
+	.empty-state button {
+		margin-top: 0.5rem;
+		padding: 0.75rem 1.5rem;
+		background-color: #f59e0b;
+		border: none;
+		border-radius: 0.5rem;
+		color: #000;
+		font-weight: 500;
+		cursor: pointer;
+		transition: background-color 0.2s;
+	}
+
+	.empty-state button:hover {
+		background-color: #fbbf24;
+	}
+
+	.anime-container {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+	}
+
+	.anime-container.grid-view {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+		gap: 1rem;
+	}
+
+	.anime-item {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		padding: 0.75rem;
+		background-color: rgba(255, 255, 255, 0.03);
+		border: 1px solid rgba(255, 255, 255, 0.05);
+		border-radius: 0.75rem;
+		cursor: pointer;
+		transition: all 0.2s;
+		text-align: left;
+		color: #fff;
+	}
+
+	.anime-item:hover {
+		background-color: rgba(255, 255, 255, 0.06);
+		border-color: rgba(255, 255, 255, 0.1);
+	}
+
+	.anime-item.grid-item {
+		flex-direction: column;
+		padding: 0;
+		background: none;
 		border: none;
 	}
-	.anime-div:hover {
-		background-color: #c7c7c7af;
-		transform: scale(1.05);
+
+	.anime-item.grid-item:hover {
+		transform: scale(1.03);
+		background: none;
 	}
-	.anime-div .img-container {
-		width: 100%;
-		height: 11rem;
-		margin-bottom: 0.5rem;
-		border-radius: 0.5rem;
+
+	.poster {
 		position: relative;
+		flex-shrink: 0;
+		width: 70px;
+		height: 100px;
+		border-radius: 0.5rem;
 		overflow: hidden;
 	}
-	.anime-div .img-container img {
+
+	.grid-item .poster {
+		width: 100%;
+		height: auto;
+		aspect-ratio: 2 / 3;
+	}
+
+	.poster img {
 		width: 100%;
 		height: 100%;
 		object-fit: cover;
-		border-radius: 0.5rem;
 	}
-	.anime-div h2{
-		font-size: 0.8rem;
-		text-align: center;
-		width: 100%;
-		height: 2rem;
-	}
-	.anime-div-line {
-		width: 95%;
-		height: 5rem;
-		background-color: #c7c7c75c;
-		border-radius: 0.5rem;
-		padding: 0.5rem;
-		margin-block: 0.5rem;
-		text-align: left;
-		transition: background-color 0.5s, transform 0.5s;
-		cursor: pointer;
-		color: white;
-		border: none;
-		display: flex;
-		align-items: center;
-	}
-	.anime-div-line:hover {
-		background-color: #c7c7c7af;
-		transform: scale(1.02);
-	}
-	.anime-div-line img {
-		width: 4.5rem;
-		height: 4.5rem;
-		min-width: 4.5rem;
-		object-fit: cover;
-		border-radius: 0.5rem;
-		margin-right: 0.5rem;
-	}
-	.anime-div-line p {
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		font-size: 0.8rem;
-	}
-	.anime-div-line .btns {
-		display: flex;
-		flex-direction: column;
-		align-items: end;
-		margin-left: auto;
-	}
-	.anime-div-line .btns div {
-		padding: 0.2rem 0.5rem;
-		margin-block: 0.2rem;
-		cursor: pointer;
-		border-radius: 0.5rem;
-		font-size: 0.8rem;
-	}
-	.anime-div-line .btns div:hover {
-		background-color: #e94444af;
-	}
-	.status {
+
+	.progress-bar {
 		position: absolute;
 		bottom: 0;
 		left: 0;
-		width: 100%;
-		height: 1rem;
-		border-radius: 0 0 0.5rem 0.5rem;
+		right: 0;
+		height: 3px;
+		background-color: rgba(0, 0, 0, 0.5);
 	}
-	.status p {
-		font-size: 0.6rem;
-		text-align: center;
-		width: 100%;
+
+	.progress {
 		height: 100%;
-		display: flex;
-		justify-content: center;
+		background-color: #f59e0b;
+		transition: width 0.3s;
+	}
+
+	.new-badge {
+		position: absolute;
+		top: 0.5rem;
+		left: 0.5rem;
+		background-color: #f59e0b;
+		color: #000;
+		font-size: 0.6rem;
+		font-weight: 600;
+		padding: 0.15rem 0.4rem;
+		border-radius: 0.25rem;
+	}
+
+	.info {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.grid-item .info {
+		padding: 0.75rem;
+		width: 100%;
+	}
+
+	.info h3 {
+		font-size: 0.95rem;
+		font-weight: 500;
+		margin-bottom: 0.25rem;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.grid-item .info h3 {
+		font-size: 0.85rem;
+	}
+
+	.episode-info {
+		font-size: 0.8rem;
+		color: rgba(255, 255, 255, 0.5);
+		margin-bottom: 0.5rem;
+	}
+
+	.status-badge {
+		display: inline-flex;
 		align-items: center;
-		border-radius: 0 0 0.5rem 0.5rem;
+		gap: 0.35rem;
+		font-size: 0.75rem;
+		padding: 0.25rem 0.6rem;
+		background-color: rgba(var(--status-color), 0.15);
+		color: var(--status-color);
+		border-radius: 1rem;
 	}
-	.filter-bar {
-		width: 95%;
-		display: flex;
-		justify-content: flex-end;
-		background-color: #c7c7c75c;
-		border-radius: 0.5rem;
-		margin-block: 0.5rem;
+
+	.status-badge i {
+		font-size: 0.65rem;
 	}
-	.filter-bar button {
-		background: none;
+
+	.delete-btn {
+		padding: 0.75rem;
+		background-color: rgba(255, 255, 255, 0.05);
 		border: none;
 		border-radius: 0.5rem;
-		padding: 0.2rem;
-		padding-inline: 0.5rem;
+		color: rgba(255, 255, 255, 0.4);
 		cursor: pointer;
-		margin: 0.2rem;
-		transition: background-color 0.2s;
+		transition: all 0.2s;
+		flex-shrink: 0;
 	}
-	.filter-bar button:hover {
-		background-color: #c7c7c7af;
+
+	.delete-btn:hover {
+		background-color: rgba(239, 68, 68, 0.2);
+		color: #ef4444;
+	}
+
+	.grid-item .delete-btn {
+		position: absolute;
+		top: 0.5rem;
+		right: 0.5rem;
+		padding: 0.5rem;
+		background-color: rgba(0, 0, 0, 0.7);
+		opacity: 0;
+	}
+
+	.grid-item:hover .delete-btn {
+		opacity: 1;
+	}
+
+	@media (max-width: 768px) {
+		.page-header {
+			flex-direction: column;
+			align-items: flex-start;
+		}
+
+		.header-controls {
+			width: 100%;
+			flex-direction: column;
+			align-items: stretch;
+		}
+
+		.filter-group {
+			flex-wrap: wrap;
+		}
 	}
 </style>
