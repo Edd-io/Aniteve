@@ -38,6 +38,7 @@
 	let src = '';
 	let timeoutOverlay: any = null;
 	let showSettings = false;
+	let tmdbPoster: string | null = null;
 
 	menu.dominantColor = '#0d0d0d';
 	menu.selected = 4;
@@ -53,6 +54,7 @@
 
 	onMount(() => {
 		video = document.querySelector('video');
+		fetchTmdbPoster();
 		fetchSeasons();
 
 		listSource.subscribe((value: any) => {
@@ -82,7 +84,7 @@
 					seasonId: idSelectedSeason,
 					allSeasons: allSeasons,
 					progress: progress || 0,
-					poster: anime.img,
+					poster: tmdbPoster || anime.img,
 					idUser: menu.user.id,
 				})
 			}).catch(console.error);
@@ -102,6 +104,30 @@
 			video.load();
 		}
 	});
+
+	function fetchTmdbPoster() {
+		const searchTitle = anime.title.replace(/\s+saison\s+\d+/i, '').trim();
+		const tmdbSearchUrl = `https://api.themoviedb.org/3/search/tv?{api_key_tmdb}&query=${encodeURIComponent(searchTitle)}&language=fr-FR`;
+
+		fetch(serverUrl + '/api/tmdb', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': localStorage.getItem('token') || '',
+			},
+			body: JSON.stringify({ url: tmdbSearchUrl }),
+		})
+		.then(res => res.json())
+		.then(data => {
+			if (data.results && data.results.length > 0) {
+				const posterPath = data.results[0].poster_path;
+				if (posterPath) {
+					tmdbPoster = `https://image.tmdb.org/t/p/w500${posterPath}`;
+				}
+			}
+		})
+		.catch(err => console.error('TMDB fetch error:', err));
+	}
 
 	function fetchSeasons() {
 		fetch(serverUrl + '/api/get_anime_season', {
@@ -330,7 +356,7 @@
 				episode: selectedEpisode + 1,
 				season: allSeasons[idSelectedSeason],
 				serverUrl: window.location.origin,
-				poster: anime.img,
+				poster: tmdbPoster || anime.img,
 			})
 		})
 		.then(() => alert('Téléchargement lancé'))
