@@ -178,6 +178,9 @@
 			if (myUser) {
 				isHost = myUser.is_host;
 				console.log('[WS] isHost updated to:', isHost);
+				if (isHost) {
+					fetchWatchingAnimes();
+				}
 			}
 		});
 
