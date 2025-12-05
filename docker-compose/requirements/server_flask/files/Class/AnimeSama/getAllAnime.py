@@ -6,7 +6,7 @@ from random import uniform
 
 def getAllAnime(db):
 	all_anime = []
-	url = 'https://anime-sama.org/catalogue/?type%5B0%5D=Anime&page='
+	url = 'https://anime-sama.eu/catalogue/?type%5B0%5D=Anime&page='
 	page = 1
 	
 	scraper = cloudscraper.create_scraper(

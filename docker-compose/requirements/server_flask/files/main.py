@@ -470,9 +470,10 @@ def srcFile():
 	url = 'https://' + request.url.split('?', 1)[1]
 	need_keys = ['serverUrl']
 
+	client_ip = request.headers.get('X-Real-IP') or request.remote_addr
 	with lock_list_available_ip:
-		if (request.headers['X-Real-IP'] not in list_available_ip):
-			list_available_ip.append(request.headers['X-Real-IP'])
+		if (client_ip not in list_available_ip):
+			list_available_ip.append(client_ip)
 	try:
 		anime = request.get_json()
 		if (url == 'https://'):
@@ -845,16 +846,16 @@ def handle_update_video(data):
 			emit('error', {'error': 'Not in a room'})
 			return
 
+		# Only pass keys that are actually present in data
+		update_kwargs = {}
+		for key in ['source', 'current_time', 'is_playing', 'anime_id', 'anime_title', 'episode', 'season_url', 'poster']:
+			if key in data:
+				update_kwargs[key] = data[key]
+
 		result = room_manager.update_video_state(
 			room_id,
 			session_id,
-			source=data.get('source'),
-			current_time=data.get('current_time'),
-			is_playing=data.get('is_playing'),
-			anime_id=data.get('anime_id'),
-			anime_title=data.get('anime_title'),
-			episode=data.get('episode'),
-			season_url=data.get('season_url')
+			**update_kwargs
 		)
 
 		if result and 'error' in result:

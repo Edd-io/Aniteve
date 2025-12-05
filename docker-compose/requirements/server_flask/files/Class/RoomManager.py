@@ -19,6 +19,7 @@ class VideoState:
 	anime_title: Optional[str] = None
 	episode: int = 0
 	season_url: Optional[str] = None
+	poster: str = ""
 	last_update: datetime = field(default_factory=datetime.now)
 
 @dataclass
@@ -199,6 +200,8 @@ class RoomManager:
 			room.video_state.episode = kwargs["episode"]
 		if "season_url" in kwargs:
 			room.video_state.season_url = kwargs["season_url"]
+		if "poster" in kwargs:
+			room.video_state.poster = kwargs["poster"]
 
 		room.video_state.last_update = datetime.now()
 
@@ -229,7 +232,8 @@ class RoomManager:
 				"anime_id": room.video_state.anime_id,
 				"anime_title": room.video_state.anime_title,
 				"episode": room.video_state.episode,
-				"season_url": room.video_state.season_url
+				"season_url": room.video_state.season_url,
+				"poster": room.video_state.poster
 			}
 		}
 
@@ -246,7 +250,8 @@ class RoomManager:
 			"anime_id": room.video_state.anime_id,
 			"anime_title": room.video_state.anime_title,
 			"episode": room.video_state.episode,
-			"season_url": room.video_state.season_url
+			"season_url": room.video_state.season_url,
+			"poster": room.video_state.poster
 		}
 
 	def get_all_rooms(self) -> List[Dict]:

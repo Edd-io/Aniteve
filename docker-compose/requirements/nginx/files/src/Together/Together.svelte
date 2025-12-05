@@ -1,5 +1,5 @@
 <script lang='ts'>
-	import { onMount, onDestroy } from 'svelte';
+	import { onMount, onDestroy, tick } from 'svelte';
 	import { io } from 'socket.io-client';
 	import '@fortawesome/fontawesome-free/css/all.css';
 
@@ -19,14 +19,24 @@
 	// Video states
 	let video: any = null;
 	let paused = true;
-	let volume = 0.75;
+	let volume = parseFloat(localStorage.getItem('player_volume') || '0.75');
 	let currentTime = 0;
 	let duration = 0;
 	let buffering = false;
-	let muted = false;
+	let muted = localStorage.getItem('player_muted') === 'true';
 	let showOverlay = false;
+	let animationOverlay = false;
+	let timeoutOverlay: any = null;
 	let src = '';
 	let isSyncing = false;
+	let lastTimeSync = 0;
+
+	// Current playing anime info (for progress tracking)
+	let currentAnimeId: number | null = null;
+	let currentAnimeTitle: string | null = null;
+	let currentEpisode: number = 0;
+	let currentSeasonUrl: string | null = null;
+	let currentPoster: string = '';
 
 	// Anime selection states
 	let showAnimeSelector = false;
@@ -56,17 +66,45 @@
 		}, 5000);
 	}
 
+	function handleFullscreenChange() {
+		isFullscreen = !!document.fullscreenElement;
+	}
+
+	let progressInterval: any = null;
+
 	onMount(() => {
 		fetchRooms();
 		connectSocket();
-		video = document.querySelector('video');
+		document.addEventListener('fullscreenchange', handleFullscreenChange);
 
-		if (video) {
-			video.volume = volume;
-		}
+		// Save progress every 10 seconds
+		progressInterval = setInterval(() => {
+			if (!video || !currentAnimeId || !duration || video.paused) return;
+
+			const progress = (video.currentTime / duration) * 100;
+			fetch(serverUrl + '/api/update_progress', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': localStorage.getItem('token') || ''
+				},
+				body: JSON.stringify({
+					id: currentAnimeId,
+					episode: currentEpisode,
+					totalEpisode: nbEpisodes || currentEpisode,
+					seasonId: selectedSeasonIdx,
+					allSeasons: allSeasons.length > 0 ? allSeasons : [{ url: currentSeasonUrl }],
+					progress: progress || 0,
+					poster: currentPoster,
+					idUser: menu.user.id
+				})
+			}).catch(console.error);
+		}, 10000);
 	});
 
 	onDestroy(() => {
+		if (progressInterval) clearInterval(progressInterval);
+		document.removeEventListener('fullscreenchange', handleFullscreenChange);
 		if (socket) {
 			socket.disconnect();
 		}
@@ -86,13 +124,16 @@
 			console.log('Socket connected');
 		});
 
-		socket.on('room_state', (data: any) => {
+		socket.on('room_state', async (data: any) => {
 			console.log('[WS] Received room_state:', data);
 			currentRoom = data;
 			users = data.users;
 			isHost = data.users.find((u: any) => u.user_id === menu.user.id)?.is_host || false;
 			console.log('[WS] Room state updated. Users:', users.length, 'isHost:', isHost);
 			view = 'room'; // Change view after receiving room state
+
+			// Wait for DOM to update before applying video state
+			await tick();
 
 			// Apply video state
 			if (data.video_state.source) {
@@ -140,7 +181,29 @@
 	}
 
 	function applySyncedVideoState(state: any) {
-		if (!video || isSyncing) return;
+		if (!video) return;
+
+		// Detect if play state changed
+		const playStateChanged = state.is_playing !== undefined &&
+			((state.is_playing && video.paused) || (!state.is_playing && !video.paused));
+
+		// Always apply play/pause state immediately (never ignore)
+		if (state.is_playing !== undefined) {
+			if (state.is_playing && video.paused) {
+				video.play().catch(console.error);
+			} else if (!state.is_playing && !video.paused) {
+				video.pause();
+			}
+		}
+
+		// Force time sync on play/pause change to avoid desync
+		if (playStateChanged && state.current_time !== undefined) {
+			video.currentTime = state.current_time;
+			return;
+		}
+
+		// Skip time/source sync if already syncing to avoid loops
+		if (isSyncing) return;
 
 		isSyncing = true;
 
@@ -150,15 +213,16 @@
 			putSrc(state.source);
 		}
 
-		// Sync time and play state
-		if (video && Math.abs(video.currentTime - state.current_time) > 2) {
-			video.currentTime = state.current_time;
-		}
+		// Update current anime info for progress tracking
+		if (state.anime_id !== undefined) currentAnimeId = state.anime_id;
+		if (state.anime_title !== undefined) currentAnimeTitle = state.anime_title;
+		if (state.episode !== undefined) currentEpisode = state.episode;
+		if (state.season_url !== undefined) currentSeasonUrl = state.season_url;
+		if (state.poster !== undefined) currentPoster = state.poster;
 
-		if (state.is_playing && video.paused) {
-			video.play().catch(console.error);
-		} else if (!state.is_playing && !video.paused) {
-			video.pause();
+		// Sync time (only if difference > 2 seconds)
+		if (state.current_time !== undefined && Math.abs(video.currentTime - state.current_time) > 2) {
+			video.currentTime = state.current_time;
 		}
 
 		setTimeout(() => {
@@ -247,11 +311,13 @@
 		if (!video) return;
 		currentTime = video.currentTime;
 
-		// Only host sends periodic time updates
-		if (isHost && !video.paused && !isSyncing) {
+		// Only host sends periodic time updates (throttled to every 3 seconds)
+		const now = Date.now();
+		if (isHost && !video.paused && !isSyncing && (now - lastTimeSync > 3000)) {
+			lastTimeSync = now;
 			socket.emit('update_video', {
 				current_time: video.currentTime,
-				is_playing: !video.paused
+				is_playing: true
 			});
 		}
 	}
@@ -271,10 +337,33 @@
 		});
 	}
 
+	let isFullscreen = false;
+	let videoContainer: HTMLElement;
+
+	function toggleFullscreen() {
+		if (!videoContainer) return;
+
+		if (!document.fullscreenElement) {
+			videoContainer.requestFullscreen().then(() => {
+				isFullscreen = true;
+			}).catch(console.error);
+		} else {
+			document.exitFullscreen().then(() => {
+				isFullscreen = false;
+			}).catch(console.error);
+		}
+	}
+
 	function putSrc(source: string) {
 		if (!video) return;
 
-		const currentSrc = serverUrl + '/api/video?' + source.split('?')[1];
+		let currentSrc: string;
+		if (source.includes('/api/video?')) {
+			currentSrc = source.replace(/^https?:\/\/[^/]+/, '');
+		} else {
+			const urlWithoutProtocol = source.replace(/^https?:\/\//, '');
+			currentSrc = serverUrl + '/api/video?' + urlWithoutProtocol;
+		}
 		video.src = currentSrc;
 		video.load();
 	}
@@ -390,15 +479,23 @@
 			src = source;
 			putSrc(source);
 
+			// Update current anime info for progress tracking
+			currentAnimeId = selectedAnime.id;
+			currentAnimeTitle = selectedAnime.title;
+			currentEpisode = selectedEpisode + 1;
+			currentSeasonUrl = allSeasons[selectedSeasonIdx].url;
+			currentPoster = selectedAnime.img || '';
+
 			// Notify other users
 			socket.emit('update_video', {
 				source: source,
 				current_time: 0,
 				is_playing: false,
-				anime_id: selectedAnime.id,
-				anime_title: selectedAnime.title,
-				episode: selectedEpisode + 1,
-				season_url: allSeasons[selectedSeasonIdx].url
+				anime_id: currentAnimeId,
+				anime_title: currentAnimeTitle,
+				episode: currentEpisode,
+				season_url: currentSeasonUrl,
+				poster: currentPoster
 			});
 
 			showAnimeSelector = false;
@@ -413,6 +510,12 @@
 		if (!video) return;
 		volume = parseFloat((e.target as HTMLInputElement).value);
 		video.volume = volume;
+		localStorage.setItem('player_volume', volume.toString());
+		if (volume > 0 && muted) {
+			muted = false;
+			video.muted = false;
+			localStorage.setItem('player_muted', 'false');
+		}
 	}
 
 	function handleSearchInput(e: Event) {
@@ -448,6 +551,48 @@
 			console.error(err);
 			isSearching = false;
 		});
+	}
+
+	function handleMouseMove() {
+		if (!src) return;
+
+		if (timeoutOverlay) clearTimeout(timeoutOverlay);
+		animationOverlay = true;
+		showOverlay = true;
+
+		timeoutOverlay = setTimeout(() => {
+			animationOverlay = false;
+			setTimeout(() => showOverlay = false, 200);
+		}, 3000);
+	}
+
+	function handleProgressClick(event: MouseEvent) {
+		if (!isHost || !video) return;
+		const bar = event.currentTarget as HTMLElement;
+		const percent = (event.clientX - bar.getBoundingClientRect().left) / bar.offsetWidth;
+		video.currentTime = percent * duration;
+		socket.emit('update_video', {
+			current_time: video.currentTime,
+			is_playing: !video.paused
+		});
+	}
+
+	function handleVideoClick() {
+		if (!isHost) return;
+		togglePlay();
+	}
+
+	function secondsToHms(d: number): string {
+		const h = Math.floor(d / 3600);
+		const m = Math.floor(d % 3600 / 60);
+		const s = Math.floor(d % 60);
+		return (h > 0 ? `${h}:` : '') + `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+	}
+
+	function toggleMute() {
+		muted = !muted;
+		if (video) video.muted = muted;
+		localStorage.setItem('player_muted', muted.toString());
 	}
 </script>
 
@@ -508,19 +653,27 @@
 
 			<div class="room-content">
 				<div class="video-section">
-					<div class="video-container">
+					<div
+						class="video-container"
+						class:fullscreen={isFullscreen}
+						bind:this={videoContainer}
+						on:mousemove={handleMouseMove}
+						on:dblclick={toggleFullscreen}
+					>
 						<video
+							bind:this={video}
 							on:timeupdate={handleTimeUpdate}
 							on:seeked={handleSeeking}
 							on:loadedmetadata={() => duration = video.duration}
 							on:waiting={() => buffering = true}
-							on:canplay={() => buffering = false}
+							on:canplay={() => { buffering = false; video.volume = volume; video.muted = muted; }}
 							on:play={() => paused = false}
 							on:pause={() => paused = true}
+							on:click={handleVideoClick}
 						></video>
 
-						{#if buffering}
-							<div class="buffering-overlay">
+						{#if buffering && src}
+							<div class="loader-overlay">
 								<i class="fas fa-spinner fa-spin"></i>
 							</div>
 						{/if}
@@ -538,34 +691,44 @@
 								{/if}
 							</div>
 						{/if}
-					</div>
 
-					<div class="controls">
-						{#if isHost}
-							<button class="control-btn" on:click={togglePlay}>
-								<i class="fas fa-{paused ? 'play' : 'pause'}"></i>
-							</button>
-							<button class="control-btn" on:click={openAnimeSelector}>
-								<i class="fas fa-list"></i>
-							</button>
+						{#if showOverlay && src}
+							<div class="controls-overlay" class:visible={animationOverlay}>
+								<div class="progress-bar" on:click={handleProgressClick}>
+									<div class="progress" style="width: {duration ? (currentTime / duration) * 100 : 0}%"></div>
+								</div>
+								<div class="controls">
+									{#if isHost}
+										<button on:click={togglePlay}>
+											<i class="fas fa-{paused ? 'play' : 'pause'}"></i>
+										</button>
+									{/if}
+									<div class="volume-control">
+										<button on:click={toggleMute}>
+											<i class="fas fa-{muted ? 'volume-mute' : 'volume-up'}"></i>
+										</button>
+										<input
+											type="range"
+											min="0"
+											max="1"
+											step="0.01"
+											bind:value={volume}
+											on:input={handleVolumeChange}
+										/>
+									</div>
+									<span class="time">{secondsToHms(currentTime)} / {secondsToHms(duration)}</span>
+									<div class="spacer"></div>
+									{#if isHost}
+										<button on:click={openAnimeSelector}>
+											<i class="fas fa-list"></i>
+										</button>
+									{/if}
+									<button on:click={toggleFullscreen}>
+										<i class="fas fa-{isFullscreen ? 'compress' : 'expand'}"></i>
+									</button>
+								</div>
+							</div>
 						{/if}
-
-						<div class="volume-control">
-							<i class="fas fa-volume-{muted ? 'mute' : 'up'}"></i>
-							<input
-								type="range"
-								min="0"
-								max="1"
-								step="0.01"
-								bind:value={volume}
-								on:input={handleVolumeChange}
-							/>
-						</div>
-
-						<div class="time-display">
-							{Math.floor(currentTime / 60)}:{String(Math.floor(currentTime % 60)).padStart(2, '0')} /
-							{Math.floor(duration / 60)}:{String(Math.floor(duration % 60)).padStart(2, '0')}
-						</div>
 					</div>
 				</div>
 
@@ -848,40 +1011,56 @@
 		flex: 1;
 		display: flex;
 		flex-direction: column;
-		padding: 2rem;
+		padding: 1rem;
+		min-width: 0;
 	}
 
 	.video-container {
 		position: relative;
+		width: 100%;
 		flex: 1;
 		background-color: #000;
 		border-radius: 0.75rem;
 		overflow: hidden;
 	}
 
+	.video-container.fullscreen {
+		position: fixed;
+		top: 0;
+		left: 0;
+		width: 100vw;
+		height: 100vh;
+		z-index: 1000;
+		border-radius: 0;
+	}
+
 	video {
 		width: 100%;
 		height: 100%;
 		object-fit: contain;
+		cursor: pointer;
 	}
 
-	.buffering-overlay, .no-video-overlay {
+	.loader-overlay, .no-video-overlay {
 		position: absolute;
-		top: 0;
-		left: 0;
-		right: 0;
-		bottom: 0;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		color: #fff;
+		text-align: center;
+		pointer-events: none;
+	}
+
+	.loader-overlay i {
+		font-size: 3rem;
+	}
+
+	.no-video-overlay {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		justify-content: center;
-		background-color: rgba(0, 0, 0, 0.8);
-		color: white;
 		gap: 1rem;
-	}
-
-	.buffering-overlay i {
-		font-size: 3rem;
+		pointer-events: auto;
 	}
 
 	.no-video-overlay i {
@@ -905,45 +1084,102 @@
 		font-style: italic;
 	}
 
+	.controls-overlay {
+		position: absolute;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+		padding: 1rem;
+		opacity: 0;
+		transition: opacity 0.2s;
+	}
+
+	.controls-overlay.visible {
+		opacity: 1;
+	}
+
+	.progress-bar {
+		height: 4px;
+		background-color: rgba(255, 255, 255, 0.3);
+		border-radius: 2px;
+		cursor: pointer;
+		margin-bottom: 0.75rem;
+	}
+
+	.progress-bar:hover {
+		height: 6px;
+	}
+
+	.progress {
+		height: 100%;
+		background-color: #f59e0b;
+		border-radius: 2px;
+		transition: width 0.1s linear;
+	}
+
 	.controls {
 		display: flex;
 		align-items: center;
 		gap: 1rem;
-		margin-top: 1rem;
-		padding: 1rem;
-		background-color: rgba(255, 255, 255, 0.05);
-		border-radius: 0.5rem;
 	}
 
-	.control-btn {
-		width: 40px;
-		height: 40px;
-		border-radius: 50%;
-		background-color: rgba(255, 255, 255, 0.1);
+	.controls button {
+		background: none;
 		border: none;
-		color: white;
+		color: #fff;
 		cursor: pointer;
-		transition: background-color 0.2s;
+		font-size: 1rem;
+		padding: 0.25rem;
+		transition: color 0.2s;
 	}
 
-	.control-btn:hover {
-		background-color: rgba(255, 255, 255, 0.2);
+	.controls button:hover {
+		color: #f59e0b;
 	}
 
 	.volume-control {
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
-		margin-left: auto;
 	}
 
-	.volume-control input {
-		width: 100px;
+	.volume-control input[type="range"] {
+		width: 80px;
+		height: 4px;
+		-webkit-appearance: none;
+		appearance: none;
+		background: rgba(255, 255, 255, 0.3);
+		border-radius: 2px;
+		cursor: pointer;
 	}
 
-	.time-display {
-		color: rgba(255, 255, 255, 0.7);
-		font-size: 0.9rem;
+	.volume-control input[type="range"]::-webkit-slider-thumb {
+		-webkit-appearance: none;
+		appearance: none;
+		width: 12px;
+		height: 12px;
+		background: #f59e0b;
+		border-radius: 50%;
+		cursor: pointer;
+	}
+
+	.volume-control input[type="range"]::-moz-range-thumb {
+		width: 12px;
+		height: 12px;
+		background: #f59e0b;
+		border-radius: 50%;
+		cursor: pointer;
+		border: none;
+	}
+
+	.time {
+		font-size: 0.85rem;
+		color: rgba(255, 255, 255, 0.8);
+	}
+
+	.spacer {
+		flex: 1;
 	}
 
 	.users-sidebar {
