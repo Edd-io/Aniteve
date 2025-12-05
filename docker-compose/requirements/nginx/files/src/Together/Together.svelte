@@ -54,6 +54,7 @@
 	let searchTimeout: any = null;
 	let errorMessage = '';
 	let errorTimeout: any = null;
+	let watchingAnimes: any[] = [];
 
 	menu.selected = 7;
 	menu.dominantColor = '#0d0d0d';
@@ -131,6 +132,11 @@
 			isHost = data.users.find((u: any) => u.user_id === menu.user.id)?.is_host || false;
 			console.log('[WS] Room state updated. Users:', users.length, 'isHost:', isHost);
 			view = 'room'; // Change view after receiving room state
+
+			// Fetch watching animes if host
+			if (isHost) {
+				fetchWatchingAnimes();
+			}
 
 			// Wait for DOM to update before applying video state
 			await tick();
@@ -553,6 +559,60 @@
 		});
 	}
 
+	function fetchWatchingAnimes() {
+		fetch(serverUrl + '/api/get_all_progress', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': localStorage.getItem('token') || ''
+			},
+			body: JSON.stringify({ idUser: menu.user.id })
+		})
+		.then(res => res.json())
+		.then(data => {
+			// Filter only watching (completed = 0) and limit to recent ones
+			watchingAnimes = (data || []).filter((a: any) => a.completed === 0).slice(0, 10);
+			console.log('[Together] Watching animes:', watchingAnimes);
+		})
+		.catch(console.error);
+	}
+
+	function selectWatchingAnime(item: any) {
+		// Set the selected anime info (data is nested: item.anime contains anime info)
+		selectedAnime = {
+			id: item.anime.id,
+			title: item.anime.title,
+			url: item.anime.url,
+			img: item.poster || item.anime.img
+		};
+
+		// Fetch seasons and set the correct one
+		fetch(serverUrl + '/api/get_anime_season', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': localStorage.getItem('token') || ''
+			},
+			body: JSON.stringify({ url: item.anime.url, serverUrl: serverUrl })
+		})
+		.then(res => res.json())
+		.then(data => {
+			allSeasons = data.season || [];
+			// Find the season index by URL
+			selectedSeasonIdx = allSeasons.findIndex((s: any) => s.url === item.season);
+			if (selectedSeasonIdx === -1) selectedSeasonIdx = 0;
+			selectedEpisode = item.episode - 1;
+
+			// Fetch episodes and open selector
+			changeSeason();
+			showAnimeSelector = true;
+		})
+		.catch(err => {
+			console.error(err);
+			showError('Erreur lors du chargement de l\'anime');
+		});
+	}
+
 	function handleMouseMove() {
 		if (!src) return;
 
@@ -730,6 +790,23 @@
 							</div>
 						{/if}
 					</div>
+
+					{#if isHost && watchingAnimes.length > 0}
+						<div class="watching-section">
+							<h3>Continuer à regarder</h3>
+							<div class="watching-list">
+								{#each watchingAnimes as item}
+									<button class="watching-item" on:click={() => selectWatchingAnime(item)}>
+										<img src={item.poster || item.anime.img} alt={item.anime.title} />
+										<div class="watching-info">
+											<span class="watching-title">{item.anime.title}</span>
+											<span class="watching-episode">EP {item.episode}</span>
+										</div>
+									</button>
+								{/each}
+							</div>
+						</div>
+					{/if}
 				</div>
 
 				<div class="users-sidebar">
@@ -1489,5 +1566,87 @@
 
 	.close-error:hover {
 		opacity: 1;
+	}
+
+	.watching-section {
+		margin-top: 1rem;
+	}
+
+	.watching-section h3 {
+		font-size: 1rem;
+		margin-bottom: 0.75rem;
+		color: rgba(255, 255, 255, 0.8);
+	}
+
+	.watching-list {
+		display: flex;
+		gap: 0.75rem;
+		overflow-x: auto;
+		padding-bottom: 0.5rem;
+	}
+
+	.watching-list::-webkit-scrollbar {
+		height: 6px;
+	}
+
+	.watching-list::-webkit-scrollbar-track {
+		background: rgba(255, 255, 255, 0.1);
+		border-radius: 3px;
+	}
+
+	.watching-list::-webkit-scrollbar-thumb {
+		background: rgba(255, 255, 255, 0.3);
+		border-radius: 3px;
+	}
+
+	.watching-item {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.5rem;
+		background: rgba(255, 255, 255, 0.05);
+		border: none;
+		border-radius: 0.5rem;
+		padding: 0.5rem;
+		cursor: pointer;
+		transition: background-color 0.2s, transform 0.2s;
+		flex-shrink: 0;
+		width: 100px;
+	}
+
+	.watching-item:hover {
+		background: rgba(255, 255, 255, 0.1);
+		transform: translateY(-2px);
+	}
+
+	.watching-item img {
+		width: 80px;
+		height: 110px;
+		object-fit: cover;
+		border-radius: 0.375rem;
+	}
+
+	.watching-info {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.25rem;
+		width: 100%;
+	}
+
+	.watching-title {
+		font-size: 0.75rem;
+		color: white;
+		text-align: center;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		width: 100%;
+	}
+
+	.watching-episode {
+		font-size: 0.7rem;
+		color: #f59e0b;
+		font-weight: 600;
 	}
 </style>
