@@ -23,6 +23,9 @@
 		<Link to="/stats" class="nav-icon {menu.selected === 5 ? 'active' : ''}" title="Statistiques">
 			<i class="fas fa-chart-bar"></i>
 		</Link>
+		<Link to="/together" class="nav-icon {menu.selected === 7 ? 'active' : ''}" title="Ensemble">
+			<i class="fas fa-users"></i>
+		</Link>
 	</div>
 
 	<div class="nav-bottom">

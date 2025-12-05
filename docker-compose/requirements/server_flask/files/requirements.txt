@@ -9,3 +9,5 @@ flask_cors
 pillow
 hypercorn
 gunicorn
+flask-socketio
+python-socketio

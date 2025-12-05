@@ -1,0 +1,43 @@
+services:
+  vite:
+    container_name: vite_dev_aniteve
+    build:
+      context: requirements/nginx
+      dockerfile: Dockerfile.dev
+    ports:
+      - "5173:5173"
+    networks:
+      - aniteve
+    volumes:
+      - ./requirements/nginx/files:/app
+      - /app/node_modules
+    command: npm run dev -- --host
+
+  server_flask:
+    build:
+      context: requirements/server_flask
+      dockerfile: Dockerfile.dev
+      args:
+        KEY_API_TMDB: ${KEY_API_TMDB}
+        PASSWORD_SERVER: ${PASSWORD_SERVER}
+        SECRET_KEY: ${SECRET_KEY}
+        WEBHOOK_URL: ${WEBHOOK_URL}
+    container_name: server_flask_dev_aniteve
+    env_file: .env
+    ports:
+      - "8000:8000"
+    networks:
+      - aniteve
+    volumes:
+      - ./requirements/server_flask/files:/app
+      - aniteve_data:/app/data/
+    environment:
+      - FLASK_ENV=development
+      - FLASK_DEBUG=1
+
+volumes:
+  aniteve_data:
+
+networks:
+  aniteve:
+    driver: bridge
