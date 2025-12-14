@@ -20,7 +20,7 @@ scraper = cloudscraper.create_scraper(
 	}
 )
 
-URL_AS				= 'https://anime-sama.org/'
+URL_AS				= 'https://anime-sama.eu/'
 SERV_URL_SRCFILE	= '/api/srcFile?'
 SERV_URL_VIDEO		= '/api/video?'
 AVAILABLE_PLAYER	= ['sibnet', 'oneupload', 'sendvid', 'vidmoly']
@@ -116,7 +116,7 @@ class AnimeSama:
 		return (season)
 	
 	def get_anime_episodes(self, anime):
-		response = scraper.get(anime['url'].replace('anime-sama.fr', 'anime-sama.org') + '/' + anime['season'] + '/episodes.js?filever=' + str(self.filever_nb))
+		response = scraper.get(anime['url'].replace('anime-sama.org', 'anime-sama.eu') + '/' + anime['season'] + '/episodes.js?filever=' + str(self.filever_nb))
 		self.filever_nb += 1
 		if (response.status_code != 200):
 			return ({'episodes': {}, 'number': 0})
@@ -332,7 +332,7 @@ class AnimeSama:
 				for i, title in enumerate(list_title):
 					if (list_number_episode[i] == -1):
 						continue
-					data.append({'title': title, 'season': list_season[i], 'url': list_redirect[i].replace('anime-sama.fr', 'anime-sama.org'), 'episode': list_number_episode[i]})
+					data.append({'title': title, 'season': list_season[i], 'url': list_redirect[i].replace('anime-sama.org', 'anime-sama.eu'), 'episode': list_number_episode[i]})
 				self.db.update_anime_status(data)
 				sleep(1800)
 			except Exception as e:

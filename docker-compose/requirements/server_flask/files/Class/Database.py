@@ -86,15 +86,19 @@ class Database:
 			self.conn.commit()
 		try:
 			cursor = self.conn.cursor()
-			cursor.execute("SELECT COUNT(*) FROM anime_list WHERE url LIKE ?", ('%anime-sama.fr%',))
+			cursor.execute("SELECT COUNT(*) FROM anime_list WHERE url LIKE ? OR url LIKE ?", ('%anime-sama.fr%', '%anime-sama.org%'))
 			count = cursor.fetchone()[0]
 			if count > 0:
 				cursor.execute(
 					"UPDATE anime_list SET url = REPLACE(url, ?, ?) WHERE url LIKE ?",
-					('anime-sama.fr', 'anime-sama.org', '%anime-sama.fr%')
+					('anime-sama.fr', 'anime-sama.eu', '%anime-sama.fr%')
+				)
+				cursor.execute(
+					"UPDATE anime_list SET url = REPLACE(url, ?, ?) WHERE url LIKE ?",
+					('anime-sama.org', 'anime-sama.eu', '%anime-sama.org%')
 				)
 				self.conn.commit()
-				print(f"Updated {count} anime_list URL(s) from 'anime-sama.fr' to 'anime-sama.org'")
+				print(f"Updated {count} anime_list URL(s) to 'anime-sama.eu'")
 		except Exception as e:
 			print(f"Error updating anime_list URLs: {e}")
 		finally:
@@ -386,19 +390,36 @@ class Database:
 		''', (anime['id'], anime['idUser'])).fetchone()
 		status = 0
 
+		# Get current season info with defaults
+		current_season = anime['allSeasons'][anime['seasonId']] if anime['seasonId'] < len(anime['allSeasons']) else {}
+		season_url = current_season.get('url', '')
+		season_name = current_season.get('name', 'Saison 1')
+		season_lang = current_season.get('lang', 'vostfr')
+
 		if (anime['progress'] >= 80):
 			if (anime['episode'] < anime['totalEpisode']):
 				anime['episode'] += 1
 				anime['progress'] = 0
 			else:
-				isInVostfr = anime['allSeasons'][anime['seasonId']]['lang'].find('vostfr') != -1
-				if (anime['seasonId'] + 1 < len(anime['allSeasons']) and (anime['allSeasons'][anime['seasonId'] + 1]['lang'].find('vostfr') != -1) == isInVostfr and anime['allSeasons'][anime['seasonId'] + 1]['lang'].find('saison') != -1):
-					anime['seasonId'] += 1
-					anime['episode'] = 1
-					anime['progress'] = 0
+				isInVostfr = season_lang.find('vostfr') != -1
+				next_season_idx = anime['seasonId'] + 1
+				if next_season_idx < len(anime['allSeasons']):
+					next_season = anime['allSeasons'][next_season_idx]
+					next_lang = next_season.get('lang', '')
+					if (next_lang.find('vostfr') != -1) == isInVostfr and next_lang.find('saison') != -1:
+						anime['seasonId'] = next_season_idx
+						anime['episode'] = 1
+						anime['progress'] = 0
+						season_url = next_season.get('url', '')
+						season_name = next_season.get('name', 'Saison 1')
+						season_lang = next_season.get('lang', 'vostfr')
+					else:
+						status = 1
+						anime['progress'] = 100
 				else:
 					status = 1
 					anime['progress'] = 100
+
 		if isPresent:
 			cursor.execute('''
 				UPDATE progress
@@ -410,11 +431,11 @@ class Database:
 					season_name = ?,
 					language = ?
 				WHERE id_anime = ? AND id_user = ?
-			''', (anime['episode'], anime['allSeasons'][anime['seasonId']]['url'], anime['progress'], status, anime['allSeasons'][anime['seasonId']]['name'], anime['allSeasons'][anime['seasonId']]['lang'], anime['id'], anime['idUser']))
+			''', (anime['episode'], season_url, anime['progress'], status, season_name, season_lang, anime['id'], anime['idUser']))
 		else:
 			cursor.execute('''
 				INSERT INTO progress (id_anime, episode, season, progress, status, poster, id_user, season_name, language)
-				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''', (anime['id'], anime['episode'], anime['allSeasons'][anime['seasonId']]['url'], anime['progress'], status, anime['poster'], anime['idUser'], anime['allSeasons'][anime['seasonId']]['name'], anime['allSeasons'][anime['seasonId']]['lang']))
+				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''', (anime['id'], anime['episode'], season_url, anime['progress'], status, anime['poster'], anime['idUser'], season_name, season_lang))
 		self.conn.commit()
 		cursor.close()
 

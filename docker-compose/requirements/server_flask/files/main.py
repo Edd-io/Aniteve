@@ -1,8 +1,10 @@
 from flask import Flask, request, Response, jsonify
+from flask_socketio import SocketIO, emit, join_room, leave_room
 from Class.Database import Database
 from Class.AnimeSama.AnimeSama import AnimeSama
 from Class.Proxy import Proxy
 from Class.Downloader import Downloader
+from Class.RoomManager import RoomManager
 import ast
 import jwt
 import json
@@ -18,7 +20,9 @@ site = AnimeSama(db)
 app = Flask(__name__)
 app.config['SECRET_KEY'] = secret_key
 download = Downloader(db)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "*"}})
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='gevent')
+room_manager = RoomManager()
 list_available_ip = []
 lock_list_available_ip = Semaphore()
 
@@ -466,9 +470,10 @@ def srcFile():
 	url = 'https://' + request.url.split('?', 1)[1]
 	need_keys = ['serverUrl']
 
+	client_ip = request.headers.get('X-Real-IP') or request.remote_addr
 	with lock_list_available_ip:
-		if (request.headers['X-Real-IP'] not in list_available_ip):
-			list_available_ip.append(request.headers['X-Real-IP'])
+		if (client_ip not in list_available_ip):
+			list_available_ip.append(client_ip)
 	try:
 		anime = request.get_json()
 		if (url == 'https://'):
@@ -717,5 +722,173 @@ def deleteProgress():
 	except Exception as e:
 		return {'error': str(e)}
 
+# Together/Rooms endpoints
+@app.route('/api/rooms', methods=['GET'])
+def get_rooms():
+	token_valid = check_token_in_request()
+	if (token_valid != None):
+		return (token_valid)
+	try:
+		rooms = room_manager.get_all_rooms()
+		return jsonify({'rooms': rooms})
+	except Exception as e:
+		return jsonify({'error': str(e)})
+
+@app.route('/api/rooms/create', methods=['POST'])
+def create_room():
+	token_valid = check_token_in_request()
+	if (token_valid != None):
+		return (token_valid)
+	try:
+		data = request.get_json()
+		user_id = data.get('user_id')
+		username = data.get('username')
+		room_name = data.get('room_name')
+
+		if not user_id or not username:
+			return jsonify({'error': 'Missing user_id or username'})
+
+		room = room_manager.create_room(user_id, username, room_name)
+		if not room:
+			return jsonify({'error': 'Maximum rooms reached (2 per user)'})
+
+		return jsonify({
+			'room_id': room.room_id,
+			'name': room.name
+		})
+	except Exception as e:
+		return jsonify({'error': str(e)})
+
+# WebSocket events
+@socketio.on('join_room')
+def handle_join_room(data):
+	try:
+		room_id = data.get('room_id')
+		user_id = data.get('user_id')
+		username = data.get('username')
+		session_id = request.sid
+
+		print(f"[WS] User {username} (ID: {user_id}) joining room {room_id}")
+
+		result = room_manager.join_room(room_id, user_id, username, session_id)
+		if result and 'error' in result:
+			print(f"[WS] Join error: {result['error']}")
+			emit('error', result)
+			return
+
+		join_room(room_id)
+		print(f"[WS] User joined successfully. Room now has {len(result['users'])} users")
+
+		# Send full room state to the user who just joined
+		emit('room_state', result, to=request.sid)
+
+		# Notify everyone else in the room
+		emit('user_joined', {
+			'user_id': user_id,
+			'username': username,
+			'users': result['users']
+		}, to=room_id, skip_sid=request.sid)
+	except Exception as e:
+		print(f"[WS] Join error: {e}")
+		emit('error', {'error': str(e)})
+
+@socketio.on('leave_room')
+def handle_leave_room():
+	try:
+		session_id = request.sid
+		room_id = room_manager.get_room_by_session(session_id)
+
+		if room_id:
+			# Get user info and old host before leaving
+			room_state = room_manager.get_room_state(room_id)
+			user_info = None
+			old_host_id = room_state['host_user_id'] if room_state else None
+			leaving_user_was_host = False
+
+			if room_state:
+				for user in room_state['users']:
+					if any(u.session_id == session_id for u in room_manager.rooms[room_id].users.values() if u.user_id == user['user_id']):
+						user_info = user
+						leaving_user_was_host = user.get('is_host', False)
+						break
+
+			deleted_room_id = room_manager.leave_room(session_id)
+			leave_room(room_id)
+
+			if not deleted_room_id:
+				# Room still exists, notify others
+				new_state = room_manager.get_room_state(room_id)
+				new_host_id = new_state['host_user_id'] if new_state else None
+
+				# Check if host changed (automatic transfer)
+				if leaving_user_was_host and new_host_id != old_host_id:
+					print(f"[WS] Host automatically transferred from {old_host_id} to {new_host_id}")
+					emit('host_transferred', new_state, to=room_id)
+				else:
+					emit('user_left', {
+						'user_id': user_info['user_id'] if user_info else None,
+						'users': new_state['users'] if new_state else []
+					}, to=room_id)
+	except Exception as e:
+		print(f"Error in leave_room: {e}")
+
+@socketio.on('disconnect')
+def handle_disconnect():
+	handle_leave_room()
+
+@socketio.on('update_video')
+def handle_update_video(data):
+	try:
+		session_id = request.sid
+		room_id = room_manager.get_room_by_session(session_id)
+
+		if not room_id:
+			emit('error', {'error': 'Not in a room'})
+			return
+
+		# Only pass keys that are actually present in data
+		update_kwargs = {}
+		for key in ['source', 'current_time', 'is_playing', 'anime_id', 'anime_title', 'episode', 'season_url', 'poster']:
+			if key in data:
+				update_kwargs[key] = data[key]
+
+		result = room_manager.update_video_state(
+			room_id,
+			session_id,
+			**update_kwargs
+		)
+
+		if result and 'error' in result:
+			emit('error', result)
+			return
+
+		emit('video_state', result, room=room_id, include_self=False)
+	except Exception as e:
+		emit('error', {'error': str(e)})
+
+@socketio.on('transfer_host')
+def handle_transfer_host(data):
+	try:
+		session_id = request.sid
+		room_id = room_manager.get_room_by_session(session_id)
+		new_host_user_id = data.get('new_host_user_id')
+
+		if not room_id:
+			emit('error', {'error': 'Not in a room'})
+			return
+
+		result = room_manager.transfer_host(room_id, new_host_user_id, session_id)
+
+		if result and 'error' in result:
+			emit('error', result)
+			return
+
+		room_state = room_manager.get_room_state(room_id)
+		emit('host_transferred', room_state, room=room_id)
+	except Exception as e:
+		emit('error', {'error': str(e)})
+
 if __name__ == '__main__':
-	app.run(debug=False, port=8000, host='0.0.0.0')
+	import os
+	debug_mode = os.environ.get('FLASK_DEBUG', '0') == '1'
+	socketio.run(app, debug=debug_mode, port=8000, host='0.0.0.0')

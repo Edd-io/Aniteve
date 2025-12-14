@@ -23,11 +23,7 @@
 		<div class="card-content">
 			<h3 class="title">{anime.title.length > 30 ? anime.title.slice(0, 30) + '...' : anime.title}</h3>
 			<div class="meta">
-				<span class="rating">
-					<i class="fas fa-star"></i> {getRandomRating()}
-				</span>
-				<span class="separator">|</span>
-				<span class="type">{getTypeLabel()}</span>
+				<span class="type">{getTypeLabel().split(' - ')[0]}</span>
 			</div>
 		</div>
 	</div>

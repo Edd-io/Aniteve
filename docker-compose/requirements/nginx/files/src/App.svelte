@@ -7,6 +7,7 @@
 	import List from './List/List.svelte';
 	import Download from './Download/Download.svelte';
 	import Stats from './Stats/Stats.svelte';
+	import Together from './Together/Together.svelte';
 	import LeftBar from "./Global/LeftBar.svelte";
 	import Login from "./Login/Login.svelte";
 	import ChooseUser from "./Login/ChooseUser.svelte";
@@ -45,13 +46,13 @@
 		}).catch(() => {
 			navigate('/', {replace: true});
 			history.replaceState(null, 'Login', '/');
-			menu.selected = 7;
+			menu.selected = 10;
 		});
 		init();
 	} else {
 		navigate('/', {replace: true});
 		history.replaceState(null, 'Login', '/');
-		menu.selected = 7;
+		menu.selected = 10;
 	}
 
 	function init() {
@@ -109,7 +110,7 @@
 				localStorage.removeItem('idUser');
 				localStorage.removeItem('token');
 				navigate('/', {replace: true});
-				menu.selected = 7;
+				menu.selected = 10;
 				history.replaceState(null, 'Aniteve - Choisir un utilisateur', '/choose_user');
 			});
 		} else {
@@ -230,7 +231,7 @@
 
 <main>
 	<Router>
-		{#if menu.selected != 7 && menu.selected != -1 && menu.selected != 8}
+		{#if menu.selected != 10 && menu.selected != -1 && menu.selected != 8}
 			<LeftBar bind:menu={menu} />
 			<div id="main-content">
 				<header id="top-nav">
@@ -315,6 +316,9 @@
 					<Route path="/stats" let:location>
 						<Stats bind:menu={menu} />
 					</Route>
+					<Route path="/together" let:location>
+						<Together bind:menu={menu} />
+					</Route>
 					<Route path="/choose_user" let:location>
 						<ChooseUser bind:menu={menu} />
 					</Route>
@@ -322,7 +326,7 @@
 			</div>
 		{:else}
 			<div id="content-full">
-				{#if menu.selected == 7}
+				{#if menu.selected == 10}
 					<Route path="/" let:location>
 						<Login bind:menu={menu} />
 					</Route>

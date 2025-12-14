@@ -11,9 +11,11 @@
 # **************************************************************************** #
 
 FILE = docker-compose/docker-compose.yml
+FILE_DEV = docker-compose/docker-compose.dev.yml
 WEBSITE_PATH = docker-compose/requirements/nginx/files
 
 COMPOSE = docker compose -f $(FILE)
+COMPOSE_DEV = docker compose -f $(FILE_DEV)
 
 all: up
 
@@ -40,6 +42,15 @@ build:
 	cd $(WEBSITE_PATH) && npm install
 	cd $(WEBSITE_PATH) && npm run build
 
+dev:
+	$(COMPOSE_DEV) up --build
+
+dev-d:
+	$(COMPOSE_DEV) up --build -d
+
+dev-down:
+	$(COMPOSE_DEV) down
+
 re: fclean all
 
-.PHONY: all up up_att down fclean re
+.PHONY: all up up_att down fclean re dev dev-d dev-down

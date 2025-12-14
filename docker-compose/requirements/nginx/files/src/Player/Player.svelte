@@ -24,13 +24,13 @@
 	let selectedSource = 0;
 	let video: any = null;
 	let paused = true;
-	let volume = 0.75;
+	let volume = parseFloat(localStorage.getItem('player_volume') || '0.75');
 	let currentTime = 0;
 	let lastCurrentTime = 0;
 	let duration = 0;
 	let fullscreen = false;
 	let buffering = false;
-	let muted = false;
+	let muted = localStorage.getItem('player_muted') === 'true';
 	let showOverlay = false;
 	let animationOverlay = false;
 	let hasAlreadyPlayed = false;
@@ -403,7 +403,7 @@
 								video.currentTime = lastCurrentTime;
 							}
 						}}
-						on:loadeddata={() => buffering = false}
+						on:loadeddata={() => { buffering = false; video.volume = volume; video.muted = muted; }}
 						on:waiting={() => buffering = true}
 						on:playing={() => buffering = false}
 						on:click={() => video?.paused ? video.play() : video.pause()}
@@ -444,9 +444,29 @@
 								<button on:click={() => video?.paused ? video.play() : video.pause()}>
 									<i class="fas {paused ? 'fa-play' : 'fa-pause'}"></i>
 								</button>
-								<button on:click={() => { muted = !muted; if (video) video.muted = muted; }}>
-									<i class="fas {muted ? 'fa-volume-mute' : 'fa-volume-up'}"></i>
-								</button>
+								<div class="volume-control">
+									<button on:click={() => { muted = !muted; if (video) video.muted = muted; localStorage.setItem('player_muted', muted.toString()); }}>
+										<i class="fas {muted ? 'fa-volume-mute' : 'fa-volume-up'}"></i>
+									</button>
+									<input
+										type="range"
+										min="0"
+										max="1"
+										step="0.01"
+										bind:value={volume}
+										on:input={(e) => {
+											if (video) {
+												video.volume = volume;
+												localStorage.setItem('player_volume', volume.toString());
+												if (volume > 0 && muted) {
+													muted = false;
+													video.muted = false;
+													localStorage.setItem('player_muted', 'false');
+												}
+											}
+										}}
+									/>
+								</div>
 								<span class="time">{secondsToHms(currentTime)} / {secondsToHms(duration)}</span>
 								<div class="spacer"></div>
 								<div class="source-select">
@@ -694,6 +714,41 @@
 
 	.controls button:hover {
 		color: #f59e0b;
+	}
+
+	.volume-control {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.volume-control input[type="range"] {
+		width: 80px;
+		height: 4px;
+		-webkit-appearance: none;
+		appearance: none;
+		background: rgba(255, 255, 255, 0.3);
+		border-radius: 2px;
+		cursor: pointer;
+	}
+
+	.volume-control input[type="range"]::-webkit-slider-thumb {
+		-webkit-appearance: none;
+		appearance: none;
+		width: 12px;
+		height: 12px;
+		background: #f59e0b;
+		border-radius: 50%;
+		cursor: pointer;
+	}
+
+	.volume-control input[type="range"]::-moz-range-thumb {
+		width: 12px;
+		height: 12px;
+		background: #f59e0b;
+		border-radius: 50%;
+		cursor: pointer;
+		border: none;
 	}
 
 	.time {
