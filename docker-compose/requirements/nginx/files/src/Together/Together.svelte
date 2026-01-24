@@ -741,6 +741,12 @@
 							</div>
 						{/if}
 
+						{#if paused && src && !buffering}
+							<div class="pause-indicator">
+								<i class="fas fa-pause"></i>
+							</div>
+						{/if}
+
 						{#if !src}
 							<div class="no-video-overlay">
 								<i class="fas fa-film"></i>
@@ -1133,6 +1139,26 @@
 
 	.loader-overlay i {
 		font-size: 3rem;
+	}
+
+	.pause-indicator {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		background-color: rgba(0, 0, 0, 0.6);
+		border-radius: 50%;
+		width: 80px;
+		height: 80px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		pointer-events: none;
+	}
+
+	.pause-indicator i {
+		font-size: 2rem;
+		color: white;
 	}
 
 	.no-video-overlay {
