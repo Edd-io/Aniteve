@@ -8,6 +8,8 @@ import json
 import re
 import sys
 import os
+from .getUrl import get_url
+from urllib.parse import urlparse, urlunparse
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from WorkerLock import WorkerLock
@@ -20,7 +22,7 @@ scraper = cloudscraper.create_scraper(
 	}
 )
 
-URL_AS				= 'https://anime-sama.eu/'
+
 SERV_URL_SRCFILE	= '/api/srcFile?'
 SERV_URL_VIDEO		= '/api/video?'
 AVAILABLE_PLAYER	= ['sibnet', 'oneupload', 'sendvid', 'vidmoly']
@@ -48,7 +50,7 @@ JS_FUNCTION			= '''
 '''
 
 class AnimeSama:
-	url = URL_AS + "catalogue/listing_all.php"
+	url = None
 	thread_status_anime = None
 	thread_new_anime = None
 	disable_get_anime_status = False
@@ -59,6 +61,7 @@ class AnimeSama:
 
 	def __init__(self, db):
 		self.db = db
+		self.url = get_url() + "catalogue/listing_all.php"
 		
 		if not self.disable_get_new_animes:
 			self.scraping_lock = WorkerLock('anime_scraping')
@@ -86,8 +89,15 @@ class AnimeSama:
 		getAllAnime(self.db)
 
 	def get_anime_season(self, anime):
-		response	= scraper.get(anime['url'])
-		print(f"Fetching seasons from URL: {anime['url']}, Status Code: {response.status_code}")
+		url = anime['url']
+		current_as_url = get_url()
+		if url.startswith('/'):
+			if current_as_url.endswith('/'):
+				url = current_as_url + url[1:]
+			else:
+				url = current_as_url + url
+		response	= scraper.get(url)
+		print(f"Fetching seasons from URL: {url}, Status Code: {response.status_code}")
 		response	= response.text.split('\n')
 		season		= []
 		isInComment = False
@@ -116,7 +126,14 @@ class AnimeSama:
 		return (season)
 	
 	def get_anime_episodes(self, anime):
-		response = scraper.get(anime['url'].replace('anime-sama.org', 'anime-sama.eu') + '/' + anime['season'] + '/episodes.js?filever=' + str(self.filever_nb))
+		url = anime['url']
+		current_as_url = get_url()
+		if url.startswith('/'):
+			if current_as_url.endswith('/'):
+				url = current_as_url + url[1:]
+			else:
+				url = current_as_url + url
+		response = scraper.get(url + '/' + anime['season'] + '/episodes.js?filever=' + str(self.filever_nb))
 		self.filever_nb += 1
 		if (response.status_code != 200):
 			return ({'episodes': {}, 'number': 0})
@@ -295,7 +312,7 @@ class AnimeSama:
 		while (1):
 			try:
 				sleep(30)
-				response = scraper.get(URL_AS)
+				response = scraper.get(get_url())
 				soup = BeautifulSoup(response.text, 'html.parser')
 				list_anime = soup.find('div', id='containerAjoutsAnimes')
 				list_title = list_anime.find_all('h1')
@@ -332,7 +349,9 @@ class AnimeSama:
 				for i, title in enumerate(list_title):
 					if (list_number_episode[i] == -1):
 						continue
-					data.append({'title': title, 'season': list_season[i], 'url': list_redirect[i].replace('anime-sama.org', 'anime-sama.eu'), 'episode': list_number_episode[i]})
+					parsed = urlparse(list_redirect[i])
+					clean_url = urlunparse(("", "", parsed.path, parsed.params, parsed.query, parsed.fragment))
+					data.append({'title': title, 'season': list_season[i], 'url': clean_url, 'episode': list_number_episode[i]})
 				self.db.update_anime_status(data)
 				sleep(1800)
 			except Exception as e:

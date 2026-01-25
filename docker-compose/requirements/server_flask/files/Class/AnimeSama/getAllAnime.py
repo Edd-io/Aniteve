@@ -3,10 +3,15 @@ import cloudscraper
 from bs4 import BeautifulSoup
 from time import sleep
 from random import uniform
+from .getUrl import get_url
 
 def getAllAnime(db):
 	all_anime = []
-	url = 'https://anime-sama.eu/catalogue/?type%5B0%5D=Anime&page='
+	url = get_url()
+	if url.startswith('/'):
+		if url.endswith('/'):
+			url = url[1:]
+	url = url + '/catalogue/?type%5B0%5D=Anime&page='
 	page = 1
 	
 	scraper = cloudscraper.create_scraper(

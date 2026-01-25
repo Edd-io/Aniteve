@@ -3,6 +3,7 @@ import threading
 import ast
 import os
 import requests
+from urllib.parse import urlparse, urlunparse
 from credientials import *
 import time
 import shutil
@@ -86,6 +87,26 @@ class Database:
 			self.conn.commit()
 		try:
 			cursor = self.conn.cursor()
+			rows = cursor.execute("SELECT id, url FROM anime_list WHERE url LIKE 'http%'").fetchall()
+			count_updates = 0
+			for row in rows:
+				print(row)
+				try:
+					parsed = urlparse(row[1])
+					new_url = urlunparse(("", "", parsed.path, parsed.params, parsed.query, parsed.fragment))
+					if new_url != row[1]:
+						cursor.execute("UPDATE anime_list SET url = ? WHERE id = ?", (new_url, row[0]))
+						count_updates += 1
+				except:
+					pass
+			if count_updates > 0:
+				self.conn.commit()
+				print(f"Updated {count_updates} anime_list URLs to paths only")
+		except Exception as e:
+			print(f"Error stripping domains from anime_list: {e}")
+		
+		try:
+			cursor = self.conn.cursor()
 			cursor.execute("SELECT COUNT(*) FROM anime_list WHERE url LIKE ? OR url LIKE ?", ('%anime-sama.fr%', '%anime-sama.org%'))
 			count = cursor.fetchone()[0]
 			if count > 0:
@@ -143,6 +164,11 @@ class Database:
 		return (data)
 
 	def insert_anime(self, anime):
+		try:
+			parsed = urlparse(anime['url'])
+			anime['url'] = urlunparse(("", "", parsed.path, parsed.params, parsed.query, parsed.fragment))
+		except:
+			pass
 		if anime['url'] and anime['url'][-1] == '/':
 			anime['url'] = anime['url'][:-1]
 		cursor = self.conn.cursor()
@@ -498,6 +524,18 @@ class Database:
 				FROM anime_list
 				WHERE url = ?
 			""", (anime['url'],)).fetchone()
+
+			if not anime_id:
+				try:
+					path = urlparse(anime['url']).path
+					if path:
+						anime_id = cursor.execute("""
+							SELECT id
+							FROM anime_list
+							WHERE url = ?
+						""", (path,)).fetchone()
+				except:
+					pass
 			if not anime_id:
 				continue
 			sawInVOSTFR = cursor.execute("""
