@@ -7,7 +7,9 @@ from .getUrl import get_url
 
 def getAllAnime(db):
 	all_anime = []
-	url = get_url()
+	url = str(get_url())
+
+	print(f'URL: {url}')
 	if url.startswith('/'):
 		if url.endswith('/'):
 			url = url[1:]
@@ -55,6 +57,10 @@ def getAllAnime(db):
 def getList(soup):
 	id_div = 'list_catalog'
 	list_anime = soup.find('div', id=id_div)
+	
+	if list_anime is None:
+		print(f'Could not find div with id="{id_div}". The website structure may have changed.')
+		return None
 	
 	anime = list_anime.find_all('div', class_='shrink-0')
 	list_anime = []

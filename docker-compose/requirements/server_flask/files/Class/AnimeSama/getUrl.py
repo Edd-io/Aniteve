@@ -24,7 +24,18 @@ def _fetch_url_logic():
         soup = BeautifulSoup(data, 'html.parser')
         button = soup.select_one('.btn-primary')
         if button and button.has_attr('href'):
-            url = button['href']
+            initial_url = button['href']
+            try:
+                response = requests.head(str(initial_url), allow_redirects=True, timeout=10)
+                if response.status_code == 200:
+                    url = response.url
+                    print(f"URL finale après redirection: {url}")
+                else:
+                    print(f"Status code {response.status_code} pour l'URL: {initial_url}")
+                    url = initial_url
+            except requests.exceptions.RequestException as e:
+                print(f"Erreur lors de la vérification de l'URL: {e}")
+                url = initial_url
         else:
             print("Button with class 'btn-primary' not found or has no href.")
     return url
